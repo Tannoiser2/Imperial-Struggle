@@ -384,7 +384,14 @@ func avanza(s: Dictionary) -> void:
 func opzioni(s: Dictionary) -> Array:
 	return s.att.opz if s.att != null else []
 
+## Per l'IA: nelle copie di prova (s._ia) l'elenco delle azioni si calcola solo quando serve.
+func materializza(s: Dictionary) -> void:
+	if s.att != null and s.att.get("pigro", false):
+		s.att.erase("pigro")
+		s.att.opz = opz_azioni(s, s.att.chi)
+
 func applica(s: Dictionary, i: int) -> void:
+	materializza(s)
 	if s.att == null or i < 0 or i >= s.att.opz.size():
 		return
 	var a: Dictionary = s.att
@@ -815,7 +822,10 @@ func _f_round(s: Dictionary, fr: Dictionary) -> void:
 			opz2.append({"ev": 0, "et": "Non giocare Eventi"})
 			chiedi(s, p, "evento", "Vuoi giocare un Evento?", opz2)
 		3:
-			chiedi(s, p, "azione", "Spendi i tuoi Punti Azione", opz_azioni(s, p))
+			if s.has("_ia"):
+				chiedi(s, p, "azione", "", [], {"pigro": true})
+			else:
+				chiedi(s, p, "azione", "Spendi i tuoi Punti Azione", opz_azioni(s, p))
 		4:
 			_fine_round(s, p)
 			s.pila.pop_back()

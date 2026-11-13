@@ -4,7 +4,7 @@ class_name Dati
 extends RefCounted
 
 const NOMI := {"FR": "Francia", "BR": "Gran Bretagna"}
-const AGG := {"FR": "francese", "BR": "britannico"}
+const AGG := {"FR": "francese", "BR": "britannica"}
 const REGIONI := {"EU": "Europa", "NA": "Nord America", "CA": "Caraibi", "IN": "India"}
 const REG_ORD := ["EU", "NA", "CA", "IN"]
 const SOTTO := {"CAN": "Canada", "COL": "Colonie del Nord", "CAR": "Costa del Carnatico", "HOO": "Fiume Hooghly"}
