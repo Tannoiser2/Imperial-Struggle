@@ -1,0 +1,113 @@
+# id|nome TTS|gm (o vuoto)|tipo|regione|sotto|costo|extra (chiave=valore;...)
+ile|Ile-aux-Noix||M|NA|CAN|3|merce=pelli
+alb|Albany||M|NA|COL|3|merce=pelli
+osw|Oswego||M|NA|COL|2|merce=pelli
+yor|York Factory||M|NA|CAN|2|merce=pelli
+cat|Cataraqui||M|NA|CAN|2|merce=pelli;iniz=FR
+nia|Niagara||M|NA|COL|2|merce=pelli
+all|Alleghany||M|NA|COL|2|merce=pelli;nome=Allegheny
+cum|Cumberland||M|NA|COL|2|merce=pelli
+hva|Hudson Valley||M|NA|COL|3|merce=pelli;iniz=BR
+che|Chesapeake||M|NA|COL|3|iniz=BR
+mas|Mass. Bay||M|NA|COL|3|merce=pesce;iniz=BR
+gsl|Gulf of St. Lawrence||M|NA|CAN|3|merce=pesce
+nec|Northeast Channel||M|NA|CAN|3|merce=pesce
+geb|Georges Bank||M|NA|CAN|2|merce=pesce
+geo|Georgia||M|CA||2|merce=tabacco;iniz=BR
+brn|Bahamas Run North||M|CA||3|merce=tabacco
+brw|Bahamas Run West||M|CA||2|merce=tabacco
+cpe|Cuba Passage East||M|CA||3|merce=tabacco
+cay|Cayman Passage||M|CA||2|merce=tabacco
+cai|Caicos||M|CA||2|merce=tabacco
+stj|St. James||M|CA||2|merce=tabacco
+pan|Panzacola||M|CA||3|merce=zucchero
+ppr|Puerto Principe||M|CA||2|merce=zucchero
+hav|Havana||M|CA||2|merce=zucchero
+san|Santiago||M|CA||2|merce=zucchero
+pdp|Port de Paix||M|CA||3|merce=zucchero;iniz=FR
+pri|Puerto Rico||M|CA||3|merce=zucchero
+ant|Antigua||M|CA||2|merce=zucchero
+mar|Martinique||M|CA||2|merce=zucchero;iniz=FR
+stl|St. Lucia||M|CA||2|merce=zucchero;iniz=BR
+man|Mangalore||M|IN|CAR|2|merce=spezie
+cal|Calicut||M|IN|CAR|3|merce=spezie
+tir|Tiruchirappalli||M|IN|CAR|2|merce=spezie
+kan|Kanchipuram||M|IN|CAR|2|merce=spezie;iniz=BR
+mal|Malacca Route||M|IN|HOO|3|merce=spezie
+pla|Plassey||M|IN|HOO|3|merce=cotone;iniz=FR
+wbe|West Bengal||M|IN|HOO|2|merce=cotone
+mid|Midnapore||M|IN|HOO|3|merce=cotone;iniz=BR
+kur|Kurpa||M|IN|CAR|2|merce=cotone
+vel|Vellore||M|IN|CAR|2|merce=cotone
+kar|Karaikal||M|IN|CAR|3|merce=cotone;iniz=FR
+n_cab|Cabot Strait||N|NA|CAN|0|
+n_mai|Gulf of Maine||N|NA|COL|0|
+n_atl|Atlantic Passage||N|NA|COL|0|
+n_caz|Gulf of Cazones||N|CA||0|
+n_cub|Cuba Passage -||N|CA||0|
+n_ant|Antilles Channel||N|CA||0|
+n_bah|Bahamas Run -||N|CA||0|
+n_mlb|Malabar Coast||N|IN|CAR|0|
+n_hoo|Hooghly River||N|IN|HOO|0|
+n_bal|Balearic||N|EU||0|pres=1
+n_bis|Biscay||N|EU||0|pres=1
+f_hal|Halifax||F|NA|CAN|3|
+f_lou|Louisbourg||F|NA|CAN|3|
+f_cha|Champlain Valley||F|NA|COL|4|
+f_ohi|Ohio Forks||F|NA|COL|3|
+f_arc|Arcot||F|IN|CAR|2|
+f_van|Vandavasi||F|IN|CAR|4|
+t_que|Québec & Montreal||T|NA|CAN|1|iniz=FR
+t_aca|Acadia||T|NA|CAN|1|iniz=FR
+t_nco|Northern Colonies -||T|NA|COL|1|iniz=BR
+t_hud|Hudson Bay||T|NA|CAN|1|
+t_car|Carolinas||T|CA||1|iniz=BR
+t_sag|San Agustin||T|CA||1|
+t_asi|Asiento||T|CA||1|
+t_lou|Louisiana||T|CA||1|iniz=FR
+t_sdo|St. Domingue||T|CA||1|iniz=FR
+t_jam|Jamaica||T|CA||1|iniz=BR
+t_gua|Guadelope||T|CA||1|iniz=FR;nome=Guadeloupe
+t_bar|Barbados||T|CA||1|iniz=BR
+t_chn|Chandernagore||T|IN|HOO|1|iniz=FR
+t_pon|Pondicherry||T|IN|CAR|1|iniz=FR
+t_mad|Madras||T|IN|CAR|1|iniz=BR
+t_clc|Calcutta||T|IN|HOO|1|iniz=BR
+t_gib|Gibraltar||T|EU||1|
+t_min|Minorca||T|EU||1|pres=1
+p_alg|Algonquin -||P|NA|CAN|2|loc=1;iniz=FR
+p_iro|Iroquois -||P|NA|COL|2|loc=1
+p_sol|Sons of Liberty||P|NA|COL|3|loc=1;era=3;nome=Sons of Liberty
+p_prv|Privateers||P|CA||2|loc=1
+p_buc|Buccaneers||P|CA||2|loc=1
+p_mrt|Maratha||P|IN|HOO|2|loc=1
+p_niz|Nizam -||P|IN|CAR|2|loc=1
+p_mys|Mysore||P|IN|CAR|2|loc=1
+p_spa1||EU-ALL-SPAIN1-3|P|EU||3|paese=Spagna;all=1;iniz=FR
+p_spa2||EU-ALL-SPAIN2-3|P|EU||3|paese=Spagna;all=1
+p_spa3||EU-PRES-SPAIN-2|P|EU||2|paese=Spagna;pres=1
+p_spa4|Spain - 3 - Prestige - (Med|EU-PRES-SPAIN-3|P|EU||3|paese=Spagna;pres=1
+p_sav||EU-ALL-SAVOY-2|P|EU||2|paese=Savoia;all=1
+p_sar||EU-ALL-SARDIN-2|P|EU||2|paese=Sardegna;all=1
+p_ger1||EU-ALL-GERSAXONY-2|P|EU||2|paese=Stati tedeschi;all=1
+p_ger2||EU-ALL-GERSAXONY-3|P|EU||3|paese=Stati tedeschi;all=1;iniz=BR
+p_bav||EU-ALL-BAVARIA-3|P|EU||3|paese=Baviera;all=1;iniz=FR
+p_aus1||EU-ALL-AUSTRIA-2|P|EU||2|paese=Austria;all=1;iniz=BR
+p_aus2||EU-ALL-AUSTRIA-3|P|EU||3|paese=Austria;all=1
+p_aus3||EU-PRES1-AUSTRIA-3|P|EU||3|paese=Austria;pres=1
+p_aus4||EU-PRES2-AUSTRIA-3|P|EU||3|paese=Austria;pres=1;iniz=FR
+p_rus||EU-ALL-PRES-RUSSIA-3|P|EU||3|paese=Russia;all=1;pres=1
+p_sve||EU-ALL-PRES-SWEDEN-2|P|EU||2|paese=Svezia;all=1;pres=1
+p_pru1||EU-ALL-PRUSSIA1-2|P|EU||2|paese=Prussia;all=1
+p_pru2||EU-PRES-PRUSSIA1-3|P|EU||3|paese=Prussia;pres=1
+p_pru3||EU-ALL-PRUSSIA2-2|P|EU||2|paese=Prussia;all=1;era=2
+p_pru4||EU-PRES-PRUSSIA2-3|P|EU||3|paese=Prussia;pres=1;era=2
+p_ola1||EU-ALL-DUTCHR-2|P|EU||2|paese=Province Unite;all=1
+p_ola2||EU-PRES-DUTCHR-3|P|EU||3|paese=Province Unite;pres=1;iniz=BR
+p_sco1||EU-ALL-SCOT-2|P|EU||2|paese=Scozia;all=1
+p_sco2||EU-PRES-SCOTLAND-3|P|EU||3|paese=Scozia;pres=1
+p_irl1||EU-ALL-IRELAND-2|P|EU||2|paese=Irlanda;all=1;iniz=FR
+p_irl2||EU-PRES-IRELAND-3|P|EU||3|paese=Irlanda;pres=1
+p_dan||EU-ALL-DENNOR-2|P|EU||2|paese=Danimarca-Norvegia;all=1
+p_usa1||EU-PRES-USFLAG-2|P|EU||2|paese=Stati Uniti;pres=1;usa=1
+p_usa2||EU-PRES-USFLAG-3|P|EU||3|paese=Stati Uniti;pres=1;usa=1

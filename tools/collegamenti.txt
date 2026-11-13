@@ -1,0 +1,128 @@
+# collegamenti (linee nere) letti dalla mappa
+t_hud yor
+t_que cat
+t_que ile
+t_que gsl
+ile f_cha
+ile alb
+ile nia
+cat nia
+f_cha alb
+f_cha osw
+osw nia
+osw alb
+alb hva
+alb cum
+nia all
+nia f_ohi
+all f_ohi
+all cum
+cum f_ohi
+cum hva
+cum t_nco
+hva t_nco
+che t_nco
+mas t_nco
+mas n_mai
+mas geb
+n_mai geb
+n_mai f_hal
+f_hal geb
+f_hal nec
+nec t_aca
+nec geb
+nec f_lou
+geb f_lou
+geb n_atl
+geb gsl
+gsl n_cab
+gsl f_lou
+n_cab f_lou
+t_aca f_lou
+geo t_car
+t_car brw
+t_sag pan
+t_lou stj
+stj n_cub
+stj cpe
+stj brw
+stj cay
+n_cub cpe
+n_cub cay
+cpe cay
+cpe brw
+brw n_bah
+brw brn
+brw cai
+brn n_bah
+brn cai
+n_bah cai
+cai t_sdo
+ppr t_sdo
+pdp t_sdo
+ppr hav
+ppr n_caz
+ppr san
+ppr pri
+hav n_caz
+hav san
+n_caz san
+san t_jam
+cay t_jam
+pri ant
+ant mar
+ant n_ant
+ant stl
+n_ant mar
+n_ant stl
+mar stl
+mar t_gua
+stl t_bar
+man n_mlb
+man cal
+man wbe
+cal n_mlb
+cal tir
+kur mid
+kur f_arc
+kur vel
+vel f_arc
+vel kan
+vel tir
+kan tir
+kan f_van
+kan t_mad
+kan kar
+tir f_van
+tir kar
+f_van kar
+kar t_pon
+wbe pla
+wbe mid
+wbe n_hoo
+pla t_chn
+pla n_hoo
+pla mal
+mid n_hoo
+mid t_clc
+n_hoo mal
+# linee di conquista (tratteggiate)
+= t_que f_lou
+= t_que f_cha
+= t_que f_ohi
+= t_aca f_lou
+= t_nco f_cha
+= t_nco f_ohi
+= t_nco f_hal
+= t_lou n_cub
+= t_jam n_cub
+= t_sag n_bah
+= t_sdo n_bah
+= t_car n_bah
+= t_gua n_ant
+= t_bar n_ant
+= t_chn n_hoo
+= t_clc n_hoo
+= t_mad f_arc
+= t_mad f_van
+= t_pon f_van
