@@ -19,6 +19,11 @@ Si gioca qui: https://tannoiser2.github.io/Imperial-Struggle/
   Ministeri sono le carte del modulo, con il testo inglese sostituito da quello italiano (`tools/carte.py`:
   ricostruisce la pergamena sotto il testo e riscrive con Besley e Libre Caslon, simili ai caratteri originali).
   Tessere, mappa e segnalini dal modulo Tabletop Simulator.
+- **Componenti originali**: tutti i pezzi sono ritagliati con la loro sagoma vera (esagoni per Squadre, tessere
+  Guerra, Conflitti e danni ai Forti; quadrati arrotondati per bandiere e segnalini). Sulla mappa ci sono le
+  tessere Vantaggio e Premio, i segnalini di PV, Debito, Limite e Trattati, turno, Iniziativa, Ugonotti e giacobiti.
+  Le guerre si vedono sulle **schede originali**, con le tessere Guerra nei riquadri blu e rossi di ogni teatro
+  (`scripts/scheda_guerra.gd`): le tue scoperte, quelle dell'avversario coperte fino alla risoluzione.
 - **IA** per la Francia o per la Gran Bretagna: sceglie tessere Investimento, Eventi e Ministeri, cerca alleanze
   per la prossima guerra, contende Premi e Domanda Globale, dosa Debito e Trattati. Non guarda le tessere e le
   carte coperte dell'avversario. Nel diario lascia brevi «dispacci» sulle sue intenzioni.

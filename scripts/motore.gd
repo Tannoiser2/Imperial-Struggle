@@ -2156,7 +2156,11 @@ func _f_teatro(s: Dictionary, fr: Dictionary) -> void:
 			var f := {"FR": forza_teatro(s, "FR", i), "BR": forza_teatro(s, "BR", i)}
 			var w := _vince(f.FR.tot, f.BR.tot)
 			var margine: int = abs(f.FR.tot - f.BR.tot)
-			s.ult_guerra.append({"nome": th.nome, "FR": f.FR, "BR": f.BR, "vince": w, "margine": margine})
+			var tess := {}
+			for p in ["FR", "BR"]:
+				var stp: Dictionary = s.guerra.teatri[i][p]
+				tess[p] = {"base": stp.base, "bonus": stp.bonus.duplicate(), "extra": stp.extra}
+			s.ult_guerra.append({"nome": th.nome, "FR": f.FR, "BR": f.BR, "vince": w, "margine": margine, "gid": gid, "tess": tess})
 			nota(s, "Forza: Francia %d, Gran Bretagna %d." % [f.FR.tot, f.BR.tot])
 			if w == "":
 				nota(s, "Pareggio: nessun bottino.")

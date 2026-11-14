@@ -885,94 +885,102 @@ func _riga_bottino(x: Array) -> String:
 		t += "; al perdente %d PT" % x[3]
 	return t
 
-func mostra_guerra() -> void:
+func _etichetta_bonus(b: String) -> String:
+	if b.begins_with("K:"):
+		return "parola chiave " + Dati.PAROLE[b.substr(2)]
+	if b == "CONF":
+		return "Conflitti negli spazi nemici"
+	if b == "FORTI":
+		return "Forti"
+	if b.begins_with("SQ:"):
+		var rg := []
+		for x in b.substr(3).split(","):
+			rg.append(Dati.REGIONI[x])
+		return "Squadre (%s)" % ", ".join(rg)
+	return b
+
+## Popup con la scheda originale della guerra e, accanto, il dettaglio in italiano.
+func _popup_scheda(titolo: String, gid: String, dati_teatri: Array, righe_testo: Array, tipo: String) -> void:
+	var d := dim_schermo()
+	var stretto := d.x < 1500.0
+	var col_testo := 400.0 if not stretto else 330.0
+	var largh: float = min(1129.0, d.x - col_testo - 110.0, (d.y - 230.0) * 1129.0 / 884.0)
 	var v := VBoxContainer.new()
+	v.add_child(etichetta(titolo, 30, F_TITOLO, C_VIOLA))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 14)
+	var scheda := SchedaGuerra.new()
+	scheda.imposta(gid, dati_teatri, F_GRASSO, largh)
+	h.add_child(scheda)
+	var corpo := VBoxContainer.new()
+	corpo.add_theme_constant_override("separation", 6)
+	for r in righe_testo:
+		corpo.add_child(etichetta(r[0], r[1], F_GRASSO if r[2] else null, r[3], col_testo - 30.0))
+	h.add_child(_scorri(corpo, col_testo, largh * 884.0 / 1129.0))
+	v.add_child(h)
+	apri_popup(v, tipo)
+
+func mostra_guerra() -> void:
 	if s.guerra.is_empty():
+		var v := VBoxContainer.new()
 		v.add_child(etichetta("Non ci sono altre guerre in arrivo.", 26, F_TITOLO, C_VIOLA))
 		apri_popup(v, "guerra")
 		return
 	var gid: String = s.guerra.id
 	var io := vedo()
-	v.add_child(etichetta("Prossima guerra: %s (%s)" % [Dati.GUERRE[gid].nome, Dati.GUERRE[gid].anni], 30, F_TITOLO, C_VIOLA))
-	var corpo := VBoxContainer.new()
-	corpo.add_theme_constant_override("separation", 10)
 	var tt: Array = Dati.GUERRE[gid].teatri
+	var dati := []
+	var righe := [["Le tue tessere sono scoperte, quelle dell'avversario coperte.", 17, false, Color(0.35, 0.25, 0.2)]]
 	for i in tt.size():
 		var th: Dictionary = tt[i]
-		var pc := PanelContainer.new()
-		pc.add_theme_stylebox_override("panel", stile(Color(1, 0.98, 0.9), C_ORO, 2, 6, 8))
-		var vv := VBoxContainer.new()
-		pc.add_child(vv)
-		var regs := []
-		for r in th.reg:
-			regs.append(Dati.REGIONI[r])
-		vv.add_child(etichetta("%d. %s (%s)" % [i + 1, th.nome, ", ".join(regs)], 24, F_TITOLO, C_INCH))
+		var voce := {}
+		righe.append(["%d. %s" % [i + 1, th.nome], 22, true, C_INCH])
 		var bonus := []
-		var alleati := []
 		for b in th.bonus:
-			if b.begins_with("K:"):
-				bonus.append("parola chiave " + Dati.PAROLE[b.substr(2)])
-			elif b == "CONF":
-				bonus.append("Conflitti negli spazi nemici")
-			elif b == "FORTI":
-				bonus.append("Forti")
-			elif b.begins_with("SQ:"):
-				var rg := []
-				for x in b.substr(3).split(","):
-					rg.append(Dati.REGIONI[x])
-				bonus.append("Squadre (%s)" % ", ".join(rg))
-			else:
-				alleati.append(b)
-		if not alleati.is_empty():
-			bonus.push_front("Alleanze di " + ", ".join(alleati))
-		vv.add_child(etichetta("Forza Bonus da: " + ", ".join(bonus), 18, F_CORSIVO, C_INCH, 900))
+			bonus.append(_etichetta_bonus(b))
+		righe.append(["Forza Bonus: " + ", ".join(bonus), 16, false, C_INCH])
 		for p in ["FR", "BR"]:
 			var st: Dictionary = s.guerra.teatri[i][p]
+			var vedi: bool = p == io or modo == "demo" or modo == "due"
+			var forza := ""
 			var t: String = Dati.NOMI[p] + ": "
-			if p == io or modo == "demo":
+			if vedi:
 				var f := mo.forza_teatro(s, p, i)
 				var voci := []
 				for x in f.voci:
 					voci.append("%s %+d" % [x[0], x[1]])
-				t += "forza %d (%s)" % [f.tot, ", ".join(voci)]
+				forza = "Forza %d" % f.tot
+				t += "forza %d (%s)" % [f.tot, ", ".join(voci) if not voci.is_empty() else "nulla"]
 			else:
 				var f2 := mo.forza_teatro(s, p, i, true)
-				t += "%d tessere coperte, forza Bonus visibile %d" % [(1 if st.base >= 0 else 0) + st.bonus.size(), f2.tot + st.extra]
-			vv.add_child(etichetta(t, 19, F_GRASSO, COL_LATO[p], 900))
-		var righe := []
-		if th.has("bott"):
-			for x in th.bott:
-				righe.append(_riga_bottino(x))
-		else:
-			for p in ["FR", "BR"]:
-				for x in th["bott_" + p]:
-					righe.append("Se vince la %s, %s" % [Dati.NOMI[p], _riga_bottino(x)])
-		vv.add_child(etichetta("Bottino: " + ". ".join(righe) + ".", 17, null, C_INCH, 900))
-		corpo.add_child(pc)
-	v.add_child(_scorri(corpo, 940, 760))
-	apri_popup(v, "guerra")
+				forza = "Bonus %d + tessere" % (f2.tot + st.extra)
+				var nt: int = (1 if st.base >= 0 else 0) + st.bonus.size()
+				t += "%d %s, forza Bonus visibile %d" % [nt, "tessera coperta" if nt == 1 else "tessere coperte", f2.tot + st.extra]
+			voce[p] = {"base": st.base, "bonus": st.bonus, "extra": st.extra, "vedi": vedi, "forza": forza}
+			righe.append([t, 17, true, COL_LATO[p]])
+		dati.append(voce)
+	_popup_scheda("Prossima guerra: %s (%s)" % [Dati.GUERRE[gid].nome, Dati.GUERRE[gid].anni], gid, dati, righe, "guerra")
 
 func mostra_esito_guerra() -> void:
-	var v := VBoxContainer.new()
-	v.add_child(etichetta("Esito della guerra", 32, F_TITOLO, C_VIOLA))
-	var corpo := VBoxContainer.new()
+	if s.ult_guerra.is_empty() or not s.ult_guerra[0].has("gid"):
+		return
+	var gid: String = s.ult_guerra[0].gid
+	var dati := []
+	var righe := [["Tutte le tessere sono state rivelate. Conquiste e trattati sono nel Diario.", 17, false, Color(0.35, 0.25, 0.2)]]
+	var n := 0
 	for r in s.ult_guerra:
-		var pc := PanelContainer.new()
-		var col: Color = COL_LATO.get(r.vince, C_INCH)
-		pc.add_theme_stylebox_override("panel", stile(Color(1, 0.98, 0.9), col, 3, 6, 8))
-		var vv := VBoxContainer.new()
-		pc.add_child(vv)
-		vv.add_child(etichetta(r.nome, 24, F_TITOLO, C_INCH))
+		n += 1
+		var voce := {"vince": r.vince}
+		righe.append(["%d. %s" % [n, r.nome], 22, true, C_INCH])
 		for p in ["FR", "BR"]:
 			var voci := []
 			for x in r[p].voci:
 				voci.append("%s %+d" % [x[0], x[1]])
-			vv.add_child(etichetta("%s: forza %d (%s)" % [Dati.NOMI[p], r[p].tot, ", ".join(voci) if not voci.is_empty() else "nulla"], 19, null, COL_LATO[p], 820))
-		vv.add_child(etichetta("Pareggio: nessun bottino." if r.vince == "" else "Vince la %s con margine %d." % [Dati.NOMI[r.vince], r.margine], 21, F_GRASSO, col))
-		corpo.add_child(pc)
-	v.add_child(_scorri(corpo, 860, 700))
-	v.add_child(etichetta("I dettagli (PV, conquiste, trattati) sono nel Diario.", 18, F_CORSIVO, C_INCH))
-	apri_popup(v, "guerra_esito")
+			voce[p] = {"base": r.tess[p].base, "bonus": r.tess[p].bonus, "extra": r.tess[p].extra, "vedi": true, "forza": "Forza %d" % r[p].tot}
+			righe.append(["%s: forza %d (%s)" % [Dati.NOMI[p], r[p].tot, ", ".join(voci) if not voci.is_empty() else "nulla"], 17, false, COL_LATO[p]])
+		righe.append(["Pareggio: nessun bottino." if r.vince == "" else "Vince la %s con margine %d." % [Dati.NOMI[r.vince], r.margine], 19, true, COL_LATO.get(r.vince, C_INCH)])
+		dati.append(voce)
+	_popup_scheda("Esito: %s" % Dati.GUERRE[gid].nome, gid, dati, righe, "guerra_esito")
 
 func mostra_fine() -> void:
 	var v := VBoxContainer.new()
@@ -1201,6 +1209,7 @@ func _prova_automatica() -> void:
 				"guerra": mostra_guerra()
 				"carta": mostra_carta_evento(s.g.FR.mano[0] if not s.g.FR.mano.is_empty() else 1)
 				"regole": mostra_regole()
+				"fino:pc": mostra_esito_guerra()
 				"ministeri": mostra_ministeri()
 				"zoom":
 					plancia._zoom_su(plancia.area.get_center(), 2.2)

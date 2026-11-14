@@ -33,8 +33,13 @@ var adattata := false
 
 func _ready() -> void:
 	tex_mappa = load("res://assets/mappa/mappa.jpg")
-	for n in ["band_a", "band_b", "band_USA", "squadra_FR", "squadra_BR", "conflitto", "conflitto_piu", "danno", "esaurito", "pv"]:
+	for n in ["band_a", "band_b", "band_USA", "squadra_FR", "squadra_BR", "conflitto", "conflitto_piu", "danno", "esaurito", "pv",
+			"debito_FR", "debito_BR", "limite_FR", "limite_BR", "trattati_FR", "trattati_BR", "turno", "iniz_FR", "iniz_BR",
+			"ugonotti", "ugonotti_usati", "giac_vittoria", "giac_sconfitta", "townshend",
+			"premio_0t", "premio_1t", "premio_1", "premio_2", "premio_3"]:
 		tex[n] = load("res://assets/pezzi/%s.png" % n)
+	for v in DatiGen.VANT_IMG:
+		tex["v:" + v] = load("res://assets/pezzi/%s.png" % DatiGen.VANT_IMG[v])
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_process(true)
 
@@ -189,17 +194,17 @@ func _draw() -> void:
 		var o: String = s.band.get(id, "")
 		if o == "FR" or o == "BR":
 			if d.tipo == "N":
-				_pezzo("squadra_" + o, c, 96.0)
+				_pezzo("squadra_" + o, c, 104.0)
 			else:
-				_pezzo("band_b" if o == "FR" else "band_a", c + Vector2(0, -6), 62.0)
+				_pezzo("band_b" if o == "FR" else "band_a", c, 74.0)
 		elif o == "US":
-			_pezzo("band_USA", c + Vector2(0, -6), 64.0)
+			_pezzo("band_USA", c, 74.0)
 		if s.danno.has(id):
-			_pezzo("danno", c + Vector2(34, 30), 52.0)
+			_pezzo("danno", c + Vector2(34, 30), 60.0)
 		if s.confl.has(id):
-			_pezzo("conflitto_piu" if s.confl[id] == 2 else "conflitto", c + Vector2(-36, 30), 54.0)
+			_pezzo("conflitto_piu" if s.confl[id] == 2 else "conflitto", c + Vector2(-34, 30), 62.0)
 		if s.ugo.has(id):
-			_disco(c + Vector2(36, -34), 17.0, Color(0.35, 0.2, 0.5) if not s.ugo[id] else Color(0.4, 0.4, 0.4), "U")
+			_pezzo("ugonotti_usati" if s.ugo[id] else "ugonotti", c + Vector2(40, -36), 50.0)
 		if evidenziati.has(id):
 			var col: Color = evidenziati[id]
 			var sp: float = max(7.0, 3.6 / zoom)
@@ -209,36 +214,32 @@ func _draw() -> void:
 			draw_arc(c, RAGGIO + 20.0, 0, TAU, 40, Color(1, 0.95, 0.4, clampf(lampeggi[id], 0.0, 1.0)), 9.0, true)
 		if id == sopra:
 			draw_arc(c, RAGGIO + 2.0, 0, TAU, 40, Color(1, 1, 1, 0.8), 3.0, true)
-	# Vantaggi
+	# Vantaggi: le tessere originali sui loro spazi, con il segnalino Esaurito quando sono usate
 	for v in s.vant:
-		var st: Dictionary = s.vant[v]
-		if st.di == "" or not DatiGen.VANT_POS.has(v):
+		if not DatiGen.VANT_POS.has(v):
 			continue
+		var st: Dictionary = s.vant[v]
 		var pv: Array = DatiGen.VANT_POS[v]
 		var c2 := Vector2(pv[0], pv[1])
-		var colv := Color(0.12, 0.3, 0.7) if st.di == "FR" else Color(0.75, 0.12, 0.1)
-		draw_arc(c2, 40.0, 0, TAU, 32, colv, 8.0, true)
+		_pezzo("v:" + v, c2, 98.0)
+		if st.di != "":
+			var colv := Color(0.12, 0.3, 0.7) if st.di == "FR" else Color(0.75, 0.12, 0.1)
+			draw_rect(Rect2(c2 - Vector2(52, 52), Vector2(104, 104)), colv, false, 7.0)
+			_pezzo("band_b" if st.di == "FR" else "band_a", c2 + Vector2(44, -44), 38.0)
 		if st.es:
-			_pezzo("esaurito", c2, 44.0, 0.92)
-	# Premi regionali
+			_pezzo("esaurito", c2 + Vector2(10, 10), 70.0)
+	# Premi regionali: le tessere Premio originali
 	for r in s.premi:
 		var nomi := {"NA": "North America", "EU": "Europe", "IN": "India", "CA": "Caribbean"}
 		var pp: Array = DatiGen.PREMI_POS[nomi[r]]
 		var c3 := Vector2(pp[0], pp[1])
 		var pr: Array = Dati.PREMI[s.premi[r]]
+		var nome_p := "premio_%d%s" % [pr[0], "t" if pr[1] > 0 else ""]
+		_pezzo(nome_p, c3, 96.0)
 		var vinto: String = s.premi_vinti.get(r, "-")
-		draw_rect(Rect2(c3 - Vector2(52, 52), Vector2(104, 104)), Color(0.96, 0.9, 0.74))
-		draw_rect(Rect2(c3 - Vector2(52, 52), Vector2(104, 104)), Color(0.35, 0.22, 0.1), false, 4.0)
-		if font != null:
-			var t1 := "%d PV" % pr[0]
-			var w1 := font.get_string_size(t1, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x
-			draw_string(font, c3 + Vector2(-w1 / 2.0, -4), t1, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(0.25, 0.1, 0.05))
-			var t2 := ("+1 PT" if pr[1] > 0 else "") + ("  (2)" if pr[2] == 2 else "")
-			var w2 := font.get_string_size(t2, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
-			draw_string(font, c3 + Vector2(-w2 / 2.0, 30), t2, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(0.55, 0.1, 0.08))
 		if vinto == "FR" or vinto == "BR":
-			_pezzo("band_b" if vinto == "FR" else "band_a", c3 + Vector2(40, -40), 40.0)
-	# Domanda globale: cerchia le merci richieste nella colonna dell'era
+			_pezzo("band_b" if vinto == "FR" else "band_a", c3 + Vector2(40, -40), 44.0)
+	# Domanda globale: cornice sulle merci richieste nella colonna dell'era
 	var righe := {"pelli": 399.0, "spezie": 440.0, "pesce": 481.0, "tabacco": 521.0, "zucchero": 562.0, "cotone": 603.0}
 	var colonne := [2437.0, 2611.0, 2782.0]
 	for m in s.domanda:
@@ -246,19 +247,37 @@ func _draw() -> void:
 		draw_rect(Rect2(cc - Vector2(66, 15), Vector2(132, 30)), Color(0.8, 0.1, 0.1, 0.9), false, 4.0)
 		draw_circle(Vector2(2275.0, righe[m]) * K, 7.0, Color(0.8, 0.1, 0.1))
 	if s.townshend != "":
-		draw_circle(Vector2(2215.0, righe[s.townshend]) * K, 9.0, Color(0.1, 0.1, 0.1))
-	# Tracciato generale: PV, Debito, Limite, Punti Trattato
-	_pezzo("pv", _casella(s.pv), 60.0)
+		_pezzo("townshend", Vector2(2215.0, righe[s.townshend]) * K, 40.0)
+	# Tracciato dei turni e Iniziativa
+	var y_turni := [0.0, 2520.0, 2430.0, 2305.0, 2140.0, 1985.0, 1825.0]
+	var guerra_in_corso: bool = s.fase == "Guerra"
+	var y_guerre := {1: 2470.0, 3: 2230.0, 4: 2075.0, 5: 1905.0}
+	if guerra_in_corso and y_guerre.has(s.turno):
+		_pezzo("turno", Vector2(150.0, y_guerre[s.turno]), 74.0)
+	else:
+		_pezzo("turno", Vector2(262.0, y_turni[clampi(s.turno, 1, 6)]), 74.0)
+	_pezzo("iniz_" + s.iniz, Vector2(450.0, 2470.0), 96.0)
+	for i in s.jac_vitt:
+		_pezzo("giac_vittoria", Vector2(262.0 + 40.0 * i, y_turni[2] if i == 0 else y_turni[4]) + Vector2(44, 0), 50.0)
+	if s.jac_fine and s.jac_vitt == 0:
+		_pezzo("giac_sconfitta", Vector2(306.0, y_turni[4]), 50.0)
+	# Tracciato generale: i segnalini originali di PV, Debito, Limite e Punti Trattato
+	var occupate := {}
+	var segn := [["pv", s.pv]]
 	for p in ["FR", "BR"]:
 		var g: Dictionary = s.g[p]
-		var colp := Color(0.12, 0.3, 0.7) if p == "FR" else Color(0.75, 0.12, 0.1)
-		var dx := -26.0 if p == "FR" else 26.0
-		_disco(_casella(g.deb) + Vector2(dx, -22), 15.0, colp, "D")
-		_disco(_casella(g.lim) + Vector2(dx, 4), 15.0, colp.darkened(0.35), "L")
-		_disco(_casella(g.trp) + Vector2(dx, 30), 15.0, colp.lightened(0.2), "T")
+		segn.append(["limite_" + p, g.lim])
+		segn.append(["debito_" + p, g.deb])
+		segn.append(["trattati_" + p, g.trp])
+	for x in segn:
+		var cas: int = clampi(x[1], 0, 30)
+		var k: int = occupate.get(cas, 0)
+		occupate[cas] = k + 1
+		var sposta: Vector2 = [Vector2(0, 0), Vector2(-20, -18), Vector2(20, 18), Vector2(20, -18), Vector2(-20, 18), Vector2(0, -26), Vector2(0, 26)][min(k, 6)]
+		_pezzo(x[0], _casella(cas) + sposta, 58.0 if k == 0 else 50.0)
 	# Riquadro della Marina
 	var nb := Vector2(2054.0, 1835.0) * K
 	for p in ["FR", "BR"]:
 		for i in s.g[p].sq_box:
-			_pezzo("squadra_" + p, nb + Vector2(-190 + i * 54, -24 if p == "FR" else 42), 62.0)
+			_pezzo("squadra_" + p, nb + Vector2(-190 + i * 56, -24 if p == "FR" else 44), 68.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

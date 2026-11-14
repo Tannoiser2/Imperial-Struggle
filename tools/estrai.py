@@ -93,29 +93,83 @@ for riga in open(PRJ + '/tools/collegamenti.txt', encoding='utf-8'):
         coll.append([p[0], p[1]])
 
 # ---- pezzi ----
-def salva(url, nome, lato=160):
+from PIL import ImageDraw, ImageChops
+def sagoma(im, forma):
+    """Ritaglia il pezzo come fa Tabletop Simulator: 'h' esagono (l'immagine quadrata viene
+    schiacciata sull'esagono), 'q' quadrato con gli angoli arrotondati."""
+    im = im.convert('RGBA')
+    w, h = im.size
+    K = 4
+    m = Image.new('L', (w * K, h * K), 0)
+    d = ImageDraw.Draw(m)
+    if forma == 'h':
+        d.polygon([(0, h * K / 2), (w * K / 4, 0), (w * K * 3 / 4, 0), (w * K, h * K / 2), (w * K * 3 / 4, h * K), (w * K / 4, h * K)], fill=255)
+    else:
+        d.rounded_rectangle((0, 0, w * K - 1, h * K - 1), radius=round(w * K * 0.085), fill=255)
+    m = m.resize((w, h), Image.LANCZOS)
+    im.putalpha(ImageChops.multiply(im.getchannel('A'), m))
+    if forma == 'h':
+        im = im.resize((w, round(w * 0.866)), Image.LANCZOS)
+    return im
+def salva(url, nome, lato=160, forma='q'):
     f = trova(url)
     if not f:
         MANCANTI.append(nome); return False
-    im = Image.open(f).convert('RGBA')
+    im = sagoma(Image.open(f), forma)
     im.thumbnail((lato, lato), Image.LANCZOS)
     im.save(PRJ + '/assets/pezzi/' + nome + '.png')
     return True
-def uno(nick):
+def uno(nick, inizia=False):
     for o in ogg:
-        if o.get('Nickname', '') == nick and o.get('CustomImage'):
+        n = o.get('Nickname', '')
+        if (n == nick or (inizia and n.startswith(nick))) and o['Name'] == 'Custom_Tile' and o.get('CustomImage'):
             return o
     raise SystemExit('non trovo ' + nick)
-b = uno('British/French Flag')['CustomImage']
-salva(b['ImageURL'], 'band_a'); salva(b['ImageSecondaryURL'], 'band_b')
-salva(uno('British Squadron')['CustomImage']['ImageURL'], 'squadra_BR')
-salva(uno('French Squadron')['CustomImage']['ImageURL'], 'squadra_FR')
-c = uno('Conflict Marker (double-sided)')['CustomImage']
-salva(c['ImageURL'], 'conflitto'); salva(c['ImageSecondaryURL'], 'conflitto_piu')
-salva(uno('Fort Damage')['CustomImage']['ImageURL'], 'danno')
-salva(uno('USA Control Marker')['CustomImage']['ImageURL'], 'band_USA')
-salva(uno('Exhausted Marker')['CustomImage']['ImageURL'], 'esaurito')
-salva(uno('Victory Point Marker')['CustomImage']['ImageURL'], 'pv')
+def due(nick, a, b, lato=160, forma='q', inizia=False):
+    ci = uno(nick, inizia)['CustomImage']
+    salva(ci['ImageURL'], a, lato, forma)
+    if b:
+        salva(ci['ImageSecondaryURL'], b, lato, forma)
+due('British/French Flag', 'band_a', 'band_b')
+due('British Squadron', 'squadra_BR', '', 200, 'h')
+due('French Squadron', 'squadra_FR', '', 200, 'h')
+due('Conflict Marker (double-sided)', 'conflitto', 'conflitto_piu', 160, 'h')
+due('Fort Damage', 'danno', '', 160, 'h')
+due('USA Control Marker', 'band_USA', '')
+due('Exhausted Marker', 'esaurito_e', 'esaurito')
+due('Victory Point Marker', 'pv', '')
+due('French Current Debt', 'debito_FR', '')
+due('British Current Debt', 'debito_BR', '')
+due('French Dept Limit', 'limite_FR', '')
+due('British Dept Limit', 'limite_BR', '')
+due('French Treaty Points', 'trattati_FR', '', inizia=True)
+due('British Treaty Points', 'trattati_BR', '', inizia=True)
+due('Game Turn', 'turno', '')
+due('Initiative Marker', 'iniz_FR', 'iniz_BR')
+due('New World Huguenots Marker', 'ugonotti', 'ugonotti_usati')
+due('French Jacobite Victory Marker', 'giac_vittoria', '')
+due('British Jacobite Defeat Marker', 'giac_sconfitta', '')
+due('Townshend Acts', 'townshend', '')
+due('Byng (+2)', 'byng', '', 200, 'h')
+due('Atlantic Dominance (+2)', 'atlantico_BR', 'atlantico_FR', 200, 'h')
+# tessere Vantaggio (fronte), Premio e Domanda Globale
+VANT_IMG = {}
+for o in ogg:
+    if o['Name'] == 'Custom_Tile' and o.get('Description', '').startswith('Advantage Tile'):
+        nome = o['Nickname'].rstrip('*')
+        VANT_IMG[nome] = 'vant_%02d' % len(VANT_IMG)
+        salva(o['CustomImage']['ImageURL'], VANT_IMG[nome], 180)
+PREMI_IMG = {}
+for o in ogg:
+    n = o.get('Nickname', '')
+    if o['Name'] == 'Custom_Tile' and 'Award Tile' in n:
+        k = '0t' if '0VP' in n else ('1t' if '1VP + TRP' in n else ('1' if '1VP' in n else ('2' if '2VP' in n else '3')))
+        if k not in PREMI_IMG:
+            PREMI_IMG[k] = 'premio_' + k
+            salva(o['CustomImage']['ImageURL'], PREMI_IMG[k], 180)
+MERCI_EN = {'Furs': 'pelli', 'Spice': 'spezie', 'Fish': 'pesce', 'Tobacco': 'tabacco', 'Sugar': 'zucchero', 'Cotton': 'cotone'}
+for en, it in MERCI_EN.items():
+    due(en, 'merce_' + it, '')
 # tessere Investimento
 inv = []
 TIPI = {'Economic': 'E', 'Ecomonic': 'E', 'Diplomacy': 'D', 'Military': 'M'}
@@ -141,9 +195,9 @@ for o in ogg:
         v = int(re.search(r'\(([+-]?\d)', n).group(1))
         url = o['CustomImage']['ImageURL']
         if url not in viste:
-            viste[url] = 'gb_%s_%d' % (lato, len(viste)); salva(url, viste[url], 150)
+            viste[url] = 'gb_%s_%d' % (lato, len(viste)); salva(url, viste[url], 170, 'h')
             if 'dorso_' + lato not in viste:
-                viste['dorso_' + lato] = 1; salva(o['CustomImage']['ImageSecondaryURL'], 'dorso_' + lato, 150)
+                viste['dorso_' + lato] = 1; salva(o['CustomImage']['ImageSecondaryURL'], 'dorso_' + lato, 170, 'h')
         base[lato].append(dict(v=v, e=effetto(n), img=viste[url]))
     elif 'Bonus War Tile' in n and 'Bonus War Tiles' in par:
         lato = 'FR' if 'French' in par else 'BR'
@@ -153,7 +207,9 @@ for o in ogg:
         k = g + '_' + lato
         bonus.setdefault(k, [])
         img = 'gx_%s_%02d' % (k, len(bonus[k]))
-        salva(o['CustomImage']['ImageURL'], img, 150)
+        salva(o['CustomImage']['ImageURL'], img, 170, 'h')
+        if len(bonus[k]) == 0:
+            salva(o['CustomImage']['ImageSecondaryURL'], 'dorsox_' + k, 170, 'h')
         bonus[k].append(dict(v=v, e=effetto(n), nome=nome, img=img))
 for k in bonus:
     assert len(bonus[k]) == 12, (k, len(bonus[k]))
@@ -187,6 +243,13 @@ for lato, chiave, ordine in (('FR', '4', [1, 2, 3, 4, 9, 11, 12, 13, 14, 23, 24,
         c = f.crop((round((i % 5) * w), round((i // 5) * h), round((i % 5 + 1) * w), round((i // 5 + 1) * h))).resize((375, 525))
         ritaglio(c, n, 'mi_%02d' % n)
 
+# ---- schede di guerra ----
+SCHEDE = {'WSS': 'War of Spanish', 'WAS': 'War of Austrian', '7YW': 'Seven Years', 'AWI': 'American War'}
+for gid, nome in SCHEDE.items():
+    for o in ogg:
+        if o['Name'] == 'Custom_Token' and o.get('Nickname', '').startswith(nome):
+            Image.open(trova(o['CustomImage']['ImageURL'])).convert('RGB').save(PRJ + '/assets/mappa/guerra_%s.jpg' % gid, quality=92)
+
 # ---- dati generati ----
 with open(PRJ + '/scripts/dati_gen.gd', 'w', encoding='utf-8') as f:
     f.write('## File generato da tools/estrai.py: non modificare a mano.\nclass_name DatiGen\nextends RefCounted\n\n')
@@ -197,6 +260,7 @@ with open(PRJ + '/scripts/dati_gen.gd', 'w', encoding='utf-8') as f:
     f.write('const COLLEG := ' + js(coll) + '\n')
     f.write('const CONQ := ' + js(conq) + '\n')
     f.write('const VANT_POS := ' + js(vant_pos) + '\n')
+    f.write('const VANT_IMG := ' + js(VANT_IMG) + '\n')
     f.write('const PREMI_POS := ' + js(premi_pos) + '\n')
     f.write('const INVEST := [\n' + ',\n'.join('\t' + js(t) for t in inv) + '\n]\n')
     f.write('const G_BASE := ' + js(base) + '\n')
