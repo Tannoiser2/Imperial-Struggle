@@ -9,12 +9,41 @@ var mo: Motore
 ## Ultimo proposito dell'IA, in parole (mostrato nel diario come «dispaccio»).
 var proposito := ""
 
-const PESO_MIN := {1: 3.0, 2: 1.5, 3: 2.0, 4: 1.2, 9: 1.2, 11: 3.0, 12: 1.8, 13: 1.5, 14: 2.0, 23: 2.0, 24: 2.5, 25: 1.8, 26: 2.2,
-	5: 2.2, 6: 1.2, 7: 1.5, 8: 2.5, 10: 2.0, 15: 3.0, 16: 1.2, 17: 2.8, 18: 2.0, 19: 1.5, 20: 2.0, 21: 1.4, 22: 2.0}
+## Pesi dei Ministeri: seguono i consigli dei giocatori esperti (John Law e i cardinali per la Francia;
+## Banca d'Inghilterra, Halley e Swift per la Gran Bretagna).
+const PESO_MIN := {1: 3.0, 2: 2.9, 3: 2.0, 4: 1.2, 9: 1.2, 11: 3.0, 12: 1.8, 13: 1.5, 14: 2.0, 23: 2.0, 24: 2.5, 25: 1.8, 26: 2.2,
+	5: 2.2, 6: 2.3, 7: 1.5, 8: 2.8, 10: 2.5, 15: 3.0, 16: 1.2, 17: 2.8, 18: 2.0, 19: 1.5, 20: 2.0, 21: 1.4, 22: 2.0}
+## Quanto vale controllare ogni Vantaggio (il Commercio baltico è il più conteso; i Conflitti gratuiti e gli sconti seguono).
+const PESO_VANT := {"Baltic Trade": 1.3, "Slaving Contracts": 0.8, "Naval Bastion": 0.55, "Central Europe Conflict": 0.75,
+	"Mediterranean Intrigue": 0.7, "Italy Influence": 0.65, "German Diplomacy": 0.65, "Silesia Negotiations": 0.6,
+	"Algonquin Raids": 0.6, "Iroquois Raids": 0.65, "Patriot Agitation": 0.6, "Fur Trade": 0.6}
 const SOTTO_SCELTE := ["spazi", "scelta", "bonus_guerra", "squadra", "scegli_vant", "togli_bonus", "byng", "domanda", "esaurisci", "up", "pc", "scarta"]
 
 func _init(m: Motore) -> void:
 	mo = m
+
+## Iniziativa: di norma conviene muovere per ultimi (si risponde all'avversario e si chiudono i Premi).
+## Si muove per primi solo se c'è una tessera Investimento nettamente migliore delle altre da non farsi soffiare,
+## o un Evento forte in mano con poche tessere che permettono di giocarlo.
+func _primo(s: Dictionary, a: Dictionary, io: String) -> int:
+	var con_evento := 0
+	var forti := 0
+	for i in s.inv_disp:
+		var d: Dictionary = DatiGen.INVEST[i]
+		if d.ev:
+			con_evento += 1
+		if d.n >= 4 and d.up:
+			forti += 1
+	var evento_pronto := false
+	for n in s.g[io].mano:
+		if mo.cond_ok(s, io, Dati.EVENTI[n].cond):
+			evento_pronto = true
+	var primo_io: bool = (evento_pronto and con_evento <= 2 and con_evento % 2 == 1) or forti == 1
+	var voglio := io if primo_io else Motore.avv(io)
+	for i in a.opz.size():
+		if a.opz[i].p == voglio:
+			return i
+	return 0
 
 func _copia(s: Dictionary) -> Dictionary:
 	var lg = s.log
@@ -47,10 +76,7 @@ func decidi(s: Dictionary) -> int:
 	var io: String = a.chi
 	match a.tipo:
 		"ministro": return _ministro(s, a, io)
-		"primo":
-			for i in a.opz.size():
-				if a.opz[i].p == io:
-					return i
+		"primo": return _primo(s, a, io)
 		"scarta": return _scarta(s, a, io)
 		"tessera": return _tessera(s, a, io)
 	return _migliore(s, io, 0)
@@ -68,6 +94,9 @@ func _migliore(s: Dictionary, io: String, prof: int) -> int:
 		var v := _valore_opzione(s, io, i, prof) + _rumore(s, i)
 		if a.tipo == "azione" and o.a == "ugo":
 			v += 0.2
+		if a.tipo == "azione" and o.a == "pesca":
+			# comprare un Evento con 3 Punti Diplomatici rende quasi sempre meno di una bandiera
+			v -= 0.7
 		if v > bv:
 			bv = v
 			best = i
@@ -145,7 +174,11 @@ func valuta(s: Dictionary, io: String) -> float:
 		var peso := 0.22
 		match d.tipo:
 			"T": peso = 0.6
-			"F": peso = 0.45 if not s.danno.has(id) else 0.2
+			"F":
+				peso = 0.45 if not s.danno.has(id) else 0.2
+				# il Nord America è teatro in tutte e quattro le guerre: i Forti lì valgono di più
+				if d.reg == "NA":
+					peso += 0.2
 			"N": peso = 0.4
 			"P": peso = 0.2 + 0.05 * d.costo
 			"M": peso = 0.15 + 0.06 * d.costo
@@ -194,7 +227,17 @@ func valuta(s: Dictionary, io: String) -> float:
 		var g: Dictionary = s.g[p]
 		var sg2 := 1.0 if p == "FR" else -1.0
 		var x := 0.0
-		x -= 0.4 * g.deb + 1.0 * max(0, g.deb - (g.lim - 2)) + 1.2 * max(0, g.deb - (g.lim - 1))
+		# il Debito si usa: prima di un cambio d'era (turni 2 e 4) il Limite sta per salire, e al sesto turno non serve più;
+		# negli altri turni si tengono almeno 2 punti di margine
+		var costo_deb := 0.4
+		var margine := 2
+		if s.turno == 2 or s.turno == 4:
+			costo_deb = 0.26
+			margine = 1
+		elif s.turno == 6:
+			costo_deb = 0.12
+			margine = 0
+		x -= costo_deb * g.deb + 1.0 * max(0, g.deb - (g.lim - margine)) + 1.2 * max(0, g.deb - (g.lim - 1))
 		x += 0.12 * (g.lim - 6)
 		x += 0.38 * min(g.trp, 4) + 0.1 * max(0, g.trp - 4)
 		x += 0.45 * g.sq_box + 0.1 * g.sq_non
@@ -203,7 +246,7 @@ func valuta(s: Dictionary, io: String) -> float:
 	for vn in s.vant:
 		var st: Dictionary = s.vant[vn]
 		if st.di != "":
-			v += (1.0 if st.di == "FR" else -1.0) * (0.45 + (0.0 if st.es else 0.2))
+			v += (1.0 if st.di == "FR" else -1.0) * (PESO_VANT.get(vn, 0.45) + (0.0 if st.es else 0.2))
 	v += 0.2 * s.ugo.size()
 	v = v * segno
 	if s.att != null and s.att.chi == io and s.ar_st.has("mag") and s.ar_st.p == io:
@@ -217,7 +260,7 @@ func _valore_teatro(s: Dictionary, io: String, i: int) -> float:
 	var a := Motore.avv(io)
 	var mio: float = mo.forza_teatro(s, io, i).tot
 	var st: Dictionary = s.guerra.teatri[i][a]
-	var suo: float = mo.forza_teatro(s, a, i, true).tot + (0.6 if st.base >= 0 else 0.0) + 1.7 * st.bonus.size() + st.extra
+	var suo: float = mo.forza_teatro(s, a, i, true).tot + (0.6 if st.base >= 0 else 0.0) + 2.0 * st.bonus.size() + st.extra
 	var m := mio - suo
 	var chi := io if m >= 0 else a
 	var righe: Array = th.get("bott", th.get("bott_" + chi, []))

@@ -47,6 +47,7 @@ var barra_alto: PanelContainer
 var lbl_turno: Label
 var lbl_pv: Label
 var box_fasi: HBoxContainer
+var box_sotto: HBoxContainer
 var lbl_da_fare: Label
 var riga_fasi: HBoxContainer
 var col_alto: VBoxContainer
@@ -269,8 +270,15 @@ func avvia_partita() -> void:
 	h2.add_theme_constant_override("separation", 12)
 	vb.add_child(h2)
 	box_fasi = HBoxContainer.new()
-	box_fasi.add_theme_constant_override("separation", 4)
+	box_fasi.add_theme_constant_override("separation", 3)
 	h2.add_child(box_fasi)
+	# terza riga: le sottofasi (del Round d'Azione o della guerra) e l'indicazione di che cosa fare
+	var h3 := HBoxContainer.new()
+	h3.add_theme_constant_override("separation", 10)
+	vb.add_child(h3)
+	box_sotto = HBoxContainer.new()
+	box_sotto.add_theme_constant_override("separation", 3)
+	h3.add_child(box_sotto)
 	lbl_da_fare = etichetta("", 21, F_GRASSO, Color(1.0, 0.93, 0.7))
 	lbl_da_fare.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lbl_da_fare.clip_text = true
@@ -278,7 +286,7 @@ func avvia_partita() -> void:
 	# sugli schermi stretti (iPad) l'indicazione va su una riga tutta sua
 	riga_fasi = h2
 	col_alto = vb
-	h2.add_child(lbl_da_fare)
+	h3.add_child(lbl_da_fare)
 	h.add_child(etichetta("Imperial Struggle", 30, F_TITOLO, C_ORO))
 	lbl_turno = etichetta("", 22, F_SOTTO, C_CARTA)
 	lbl_turno.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -292,6 +300,7 @@ func avvia_partita() -> void:
 	h.add_child(bottone("Ministeri", mostra_ministeri, 0, 19))
 	h.add_child(bottone("Diario", mostra_diario, 0, 19))
 	h.add_child(bottone("Regole", mostra_regole, 0, 19))
+	h.add_child(bottone("Aiuto", mostra_aiuto, 0, 19))
 	h.add_child(bottone("Mappa intera", func(): plancia.adatta(), 0, 19))
 	h.add_child(bottone("Menu", _chiedi_menu, 0, 19))
 	# terza riga della barra in alto: le azioni di gioco
@@ -359,13 +368,7 @@ func _disponi() -> void:
 		return
 	var d := dim_schermo()
 	var largo := d.x >= 1700.0
-	var alto := 212.0 if largo else 246.0
-	var genitore: Node = riga_fasi if largo else col_alto
-	if lbl_da_fare.get_parent() != genitore:
-		lbl_da_fare.get_parent().remove_child(lbl_da_fare)
-		genitore.add_child(lbl_da_fare)
-		if not largo:
-			col_alto.move_child(lbl_da_fare, 2)
+	var alto := 250.0 if largo else 256.0
 	var basso := 112.0
 	var lato := 318.0 if d.x >= 1500 else 292.0
 	barra_alto.position = Vector2.ZERO
@@ -416,40 +419,105 @@ func aggiorna() -> void:
 	if s.fine != null and popup_tipo != "fine":
 		mostra_fine()
 
-const FASI := ["Preparazione del turno", "Fase dei Ministeri", "Fase dell'Iniziativa", "Fase delle Azioni", "Punteggio", "Guerra"]
-const FASI_BREVI := ["Preparazione", "Ministeri", "Iniziativa", "Azioni", "Punteggio", "Guerra"]
+## Le 14 fasi di un turno di Pace (regola 4.1), più la guerra che segue.
+const FASI14 := ["Mazzo", "Limite di Debito", "Premi", "Domanda Globale", "Riassetto", "Carte", "Ministeri", "Iniziativa",
+	"Azioni", "Punti Trattato", "Poteri residui", "Punteggio", "Controllo vittoria", "Punteggio finale"]
+const FASI14_BREVI := ["Mazzo", "Debito", "Premi", "Domanda", "Riassetto", "Carte", "Ministeri", "Iniziativa",
+	"Azioni", "Trattati", "Poteri", "Punteggio", "Vittoria", "Finale"]
+const FASI14_DESCR := ["Si aggiungono al mazzo gli Eventi della nuova era", "All'inizio di un'era i Limiti di Debito salgono di 4",
+	"Si mettono le tessere Premio nelle quattro regioni", "Si estraggono le tre merci della Domanda Globale",
+	"Tornano disponibili Vantaggi, tessere Investimento e Ministeri", "Si pescano 3 Eventi e si scoprono 9 tessere Investimento",
+	"All'inizio di un'era si scelgono i due Ministeri", "Chi è indietro nei PV decide chi fa il primo Round",
+	"Quattro Round d'Azione a testa, alternati", "I Punti Trattato oltre 4 si perdono", "Si risolvono i poteri di fine turno",
+	"Si assegnano Premi, prestigio e Domanda Globale", "A 30 PV vince la Francia, a 0 la Gran Bretagna", "Solo dopo il sesto turno"]
 const DA_FARE := {"scarta": "scarta gli Eventi in più (se ne tengono 3)", "ministro": "scegli i due Ministeri dell'era",
 	"primo": "decidi chi fa il primo Round d'Azione", "tessera": "prendi una tessera Investimento",
 	"evento": "decidi se giocare un Evento", "azione": "tocca uno spazio evidenziato sulla mappa oppure scegli un'azione qui sotto",
 	"pc": "spendi i Punti Conquista sulla mappa", "bonus_guerra": "metti la tessera Bonus in un teatro",
 	"up": "scegli quale tessera Base tenere", "rifiuto": "cedi il Territorio oppure rifiuta", "spazi": "scegli uno spazio sulla mappa"}
 
-func _agg_fasi() -> void:
-	svuota(box_fasi)
-	var corrente := FASI.find(s.fase)
+func _fase_corrente() -> int:
 	if s.fine != null:
-		corrente = -1
-	var c_guerra: bool = Dati.GUERRA_DOPO.has(s.turno)
-	for i in FASI.size():
-		var testo: String = "%d. %s" % [i + 1, FASI_BREVI[i]]
-		if i == 3:
-			var fatti: int = s.ar.FR + s.ar.BR
-			testo += " (Round %d di 8)" % min(8, fatti + (1 if corrente == 3 else 0)) if corrente == 3 else ""
-		if i == 5:
-			testo = "6. " + (Dati.GUERRE[Dati.GUERRA_DOPO[s.turno]].nome if c_guerra else ("Fine della partita" if s.turno == 6 else "Nessuna guerra"))
-		var pc := PanelContainer.new()
-		var l := etichetta(testo, 18, F_GRASSO if i == corrente else F_SOTTO)
-		if i == corrente:
+		return 99
+	match s.fase:
+		"Preparazione del turno": return 5
+		"Fase dei Ministeri": return 6
+		"Fase dell'Iniziativa": return 7
+		"Fase delle Azioni": return 8
+		"Punteggio": return 11
+		"Guerra": return 14
+	return 0
+
+func _chip(testo: String, stato: int, dim := 17, descr := "") -> PanelContainer:
+	# stato: 0 passata, 1 corrente, 2 futura, 3 corrente secondaria
+	var pc := PanelContainer.new()
+	var l := etichetta(testo, dim, F_GRASSO if stato == 1 or stato == 3 else F_SOTTO)
+	match stato:
+		1:
 			pc.add_theme_stylebox_override("panel", stile(C_ORO, Color(1, 0.97, 0.8), 2, 5, 5))
 			l.add_theme_color_override("font_color", C_NOTTE)
-		elif i < corrente:
+		3:
+			pc.add_theme_stylebox_override("panel", stile(Color(0.95, 0.9, 0.75), C_ORO, 2, 5, 5))
+			l.add_theme_color_override("font_color", C_NOTTE)
+		0:
 			pc.add_theme_stylebox_override("panel", stile(Color(0.24, 0.17, 0.26), Color(0.42, 0.34, 0.4), 1, 5, 5))
-			l.add_theme_color_override("font_color", Color(0.6, 0.54, 0.56))
-		else:
+			l.add_theme_color_override("font_color", Color(0.72, 0.66, 0.68))
+		_:
 			pc.add_theme_stylebox_override("panel", stile(Color(0.2, 0.12, 0.22), C_ORO.darkened(0.35), 1, 5, 5))
 			l.add_theme_color_override("font_color", C_CARTA)
-		pc.add_child(l)
-		box_fasi.add_child(pc)
+	pc.add_child(l)
+	if descr != "":
+		pc.tooltip_text = descr
+	return pc
+
+func _agg_fasi() -> void:
+	svuota(box_fasi)
+	svuota(box_sotto)
+	var corrente := _fase_corrente()
+	var stretto := dim_schermo().x < 1700.0
+	var c_guerra: bool = Dati.GUERRA_DOPO.has(s.turno)
+	for i in 14:
+		if i == 13 and s.turno != 6:
+			continue
+		var st := 1 if i == corrente else (0 if i < corrente else 2)
+		var testo: String = "%d %s" % [i + 1, FASI14_BREVI[i]]
+		if stretto and st != 1:
+			testo = str(i + 1) if i < 6 or i > 8 else testo
+		box_fasi.add_child(_chip(testo, st, 16 if not stretto else 15, "%d. %s: %s" % [i + 1, FASI14[i], FASI14_DESCR[i]]))
+	var nome_g: String = Dati.GUERRE[Dati.GUERRA_DOPO[s.turno]].nome if c_guerra else "Nessuna guerra"
+	if stretto and c_guerra and corrente != 14:
+		nome_g = "Guerra"
+	box_fasi.add_child(_chip(nome_g, 1 if corrente == 14 else (0 if corrente == 99 else 2), 16 if not stretto else 15, "Dopo i turni 1, 3, 4 e 6 si combatte una guerra"))
+	# sottofasi
+	if corrente == 8 and s.ar_st.has("p"):
+		var ar: Dictionary = s.ar_st
+		var passo := 2
+		if s.att != null and s.att.tipo == "tessera":
+			passo = 0
+		elif int(ar.tess) < 0:
+			passo = 0
+		elif s.att != null and s.att.tipo == "evento":
+			passo = 1
+		box_sotto.add_child(_chip("Round %d di 8: %s" % [min(8, s.ar.FR + s.ar.BR + 1), Dati.NOMI[ar.p]], 3, 16))
+		var nomi := ["a Investimento", "b Evento", "c Punti Azione"]
+		var descr := ["Prendi una tessera Investimento (oppure usa un potere che la sostituisce)", "Se la tessera ha il simbolo, puoi giocare un Evento",
+			"Spendi i punti dell'Azione Maggiore e di quella Minore; la Miglioria militare se la tessera la concede"]
+		for i in 3:
+			box_sotto.add_child(_chip(nomi[i], 1 if i == passo else (0 if i < passo else 2), 16, descr[i]))
+		if passo == 2 and not stretto:
+			if int(ar.mag.n) > 0:
+				box_sotto.add_child(_chip("Maggiore: %s %d" % [Dati.SIGLA_PA.get(ar.mag.t, "?"), int(ar.mag.n)], 3, 15))
+			if not ar.min.us and int(ar.min.n) > 0:
+				box_sotto.add_child(_chip("Minore: %s %d" % [Dati.SIGLA_PA.get(ar.min.t, "?"), int(ar.min.n)], 3, 15))
+			if ar.up:
+				box_sotto.add_child(_chip("Miglioria militare", 3, 15))
+	elif corrente == 14 and not s.guerra.is_empty():
+		var tt: Array = Dati.GUERRE[s.guerra.id].teatri
+		var fatto: int = s.ult_guerra.size()
+		for i in tt.size():
+			box_sotto.add_child(_chip("Teatro %d: %s" % [i + 1, tt[i].nome] if not stretto else ("T%d" % (i + 1) if i != fatto else tt[i].nome), 1 if i == fatto else (0 if i < fatto else 2), 16, tt[i].nome))
+	elif corrente == 5 or corrente == 6 or corrente == 7 or corrente == 11:
+		box_sotto.add_child(_chip("%d. %s" % [corrente + 1, FASI14[corrente]], 3, 16, FASI14_DESCR[corrente]))
 	if s.fine != null:
 		lbl_da_fare.text = "Partita finita: vince la %s." % Dati.NOMI[s.fine.vince]
 	elif s.att == null:
@@ -540,6 +608,13 @@ func _agg_sinistra() -> void:
 		var nome := etichetta(Dati.NOMI[p], 25, F_TITOLO, Color(1, 0.97, 0.88))
 		nome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		ht.add_child(nome)
+		# toccando l'intestazione si apre la plancia del giocatore
+		bandiera.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		testa.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		testa.tooltip_text = "Tocca per vedere la plancia della %s" % Dati.NOMI[p]
+		testa.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and not ev.pressed:
+				mostra_plancia(p))
 		var chi := ""
 		if modo == "ia":
 			chi = "tu" if umani[p] else "IA"
@@ -1044,6 +1119,44 @@ func mostra_scelta_carte() -> void:
 	v.add_child(_scorri(griglia, larg_tot, 800))
 	apri_popup(v, "carte", true)
 
+## La plancia originale del giocatore con sopra tessere, Squadre e Ministeri.
+func mostra_plancia(p: String) -> void:
+	var d := dim_schermo()
+	var largh: float = min(1650.0, d.x - 90.0, (d.y - 190.0) * 1650.0 / 1275.0)
+	var v := VBoxContainer.new()
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 16)
+	var tit := etichetta("Plancia della %s" % Dati.NOMI[p], 30, F_TITOLO, C_VIOLA)
+	tit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(tit)
+	var altro := "BR" if p == "FR" else "FR"
+	h.add_child(bottone("Vedi la %s" % Dati.NOMI[altro], func(): mostra_plancia(altro), 0, 19))
+	v.add_child(h)
+	var pg := PlanciaGiocatore.new()
+	pg.imposta(p, s, p == vedo() or modo == "demo", F_GRASSO, largh)
+	v.add_child(pg)
+	apri_popup(v, "plancia")
+
+## Il riepilogo delle regole in italiano (player aid), due pagine.
+func mostra_aiuto(pagina := 1) -> void:
+	var d := dim_schermo()
+	var largh: float = min(1500.0, d.x - 110.0)
+	var v := VBoxContainer.new()
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 16)
+	var tit := etichetta("Aiuto di gioco, pagina %d di 2" % pagina, 30, F_TITOLO, C_VIOLA)
+	tit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(tit)
+	h.add_child(bottone("Pagina %d" % (3 - pagina), func(): mostra_aiuto(3 - pagina), 0, 19))
+	v.add_child(h)
+	var img := TextureRect.new()
+	img.texture = load("res://assets/aiuti/aiuto_%d.jpg" % pagina)
+	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	img.stretch_mode = TextureRect.STRETCH_SCALE
+	img.custom_minimum_size = Vector2(largh - 24.0, (largh - 24.0) * img.texture.get_height() / float(img.texture.get_width()))
+	v.add_child(_scorri(img, largh, d.y - 230.0))
+	apri_popup(v, "aiuto")
+
 func mostra_ministeri() -> void:
 	var v := VBoxContainer.new()
 	v.add_child(etichetta("Ministeri in gioco", 30, F_TITOLO, C_VIOLA))
@@ -1415,7 +1528,7 @@ func _prova_automatica() -> void:
 			await get_tree().process_frame
 			if s.att == null:
 				break
-			if popup != null and popup_tipo in ["guerra_esito", "guerra", "carta", "regole", "ministeri", "diario", "mano"]:
+			if popup != null and popup_tipo in ["guerra_esito", "guerra", "carta", "regole", "ministeri", "diario", "mano", "plancia", "aiuto"]:
 				chiudi_popup()
 			if tocca_a_me():
 				var k := r.randi_range(0, s.att.opz.size() - 1)
@@ -1464,6 +1577,9 @@ func _prova_automatica() -> void:
 				"regole": mostra_regole()
 				"fino:pc": mostra_esito_guerra()
 				"ministeri": mostra_ministeri()
+				"plancia": mostra_plancia("FR")
+				"plancia_br": mostra_plancia("BR")
+				"aiuto": mostra_aiuto(1)
 				"zoom":
 					plancia._zoom_su(plancia.area.get_center(), 2.2)
 	await get_tree().create_timer(1.2).timeout

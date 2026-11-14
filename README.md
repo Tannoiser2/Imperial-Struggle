@@ -73,3 +73,20 @@ python3 tools/controlla_glifi.py
 Il workflow `Pubblica` parte a mano (Actions -> Pubblica -> Run workflow) oppure con un commit che contiene
 `[pubblica]`. Pubblica su GitHub Pages e, se ci sono i segreti `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`,
 anche sulla ludoteca privata (`imperialstruggle.ludoteca-digitale.com`).
+
+## Plance, aiuto di gioco e fasi
+
+- Toccando il nome di una potenza si apre la sua **plancia originale tradotta in italiano** (`tools/plance.py` cancella il testo
+  inglese ricostruendo lo sfondo e riscrive quello italiano), con sopra Vantaggi, riserve delle tessere Guerra, Squadre da
+  costruire, Ministeri e tessere Investimento del turno (`scripts/plancia_giocatore.gd`).
+- Il pulsante **Aiuto** mostra il riepilogo italiano delle regole (player aid di NicoPico, BoardGameGeek).
+- La barra in alto elenca le **14 fasi** del turno di Pace più la guerra, e sotto le sottofasi del Round d'Azione
+  (a Investimento, b Evento, c Punti Azione) o i teatri della guerra.
+- `tools/aiuti.py "<cartella dei PDF>" .` rigenera le immagini in `assets/aiuti/`.
+
+## Che cosa sa l'IA
+
+Valuta ogni mossa su una copia della partita; nei pesi sono entrati i consigli del Players Handbook, dei bot per il solitario
+e dei giocatori esperti: muovere per ultimi quando si ha l'Iniziativa, Commercio baltico e alleanze europee, Forti in Nord
+America, John Law e cardinali (Francia), Banca d'Inghilterra, Halley e Swift (Gran Bretagna), niente Eventi comprati a 3 PD,
+Punti Trattato prima del Debito, Debito usato a fondo prima dei cambi d'era, tessere Bonus coperte stimate 2.
