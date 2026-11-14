@@ -910,6 +910,7 @@ func _popup_scheda(titolo: String, gid: String, dati_teatri: Array, righe_testo:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 14)
 	var scheda := SchedaGuerra.new()
+	scheda.prova_righe = OS.get_environment("IS_RIGHE") != ""
 	scheda.imposta(gid, dati_teatri, F_GRASSO, largh)
 	h.add_child(scheda)
 	var corpo := VBoxContainer.new()
@@ -919,6 +920,17 @@ func _popup_scheda(titolo: String, gid: String, dati_teatri: Array, righe_testo:
 	h.add_child(_scorri(corpo, col_testo, largh * 884.0 / 1129.0))
 	v.add_child(h)
 	apri_popup(v, tipo)
+
+## Aggiunge alla voce di un teatro chi è avanti, di quanto, e le soglie della tabella del bottino.
+func _margine_voce(voce: Dictionary, th: Dictionary, diff: int, provv: bool) -> void:
+	voce["capo"] = "FR" if diff > 0 else ("BR" if diff < 0 else "")
+	voce["margine"] = abs(diff)
+	voce["provv"] = provv
+	var soglie := []
+	if voce.capo != "":
+		for x in th.get("bott", th.get("bott_" + voce.capo, [])):
+			soglie.append(x[0])
+	voce["soglie"] = soglie
 
 func mostra_guerra() -> void:
 	if s.guerra.is_empty():
@@ -934,6 +946,8 @@ func mostra_guerra() -> void:
 	for i in tt.size():
 		var th: Dictionary = tt[i]
 		var voce := {}
+		var noti := {"FR": 0, "BR": 0}
+		var provv := false
 		righe.append(["%d. %s" % [i + 1, th.nome], 22, true, C_INCH])
 		var bonus := []
 		for b in th.bonus:
@@ -965,6 +979,14 @@ func mostra_guerra() -> void:
 				t += "forza Bonus %d (%s), più %d %s" % [tot2, ", ".join(voci2) if not voci2.is_empty() else "nulla", nt, "tessera coperta" if nt == 1 else "tessere coperte"]
 			voce[p] = {"base": st.base, "bonus": st.bonus, "extra": st.extra, "vedi": vedi, "forza": forza}
 			righe.append([t, 17, true, COL_LATO[p]])
+			noti[p] = (mo.forza_teatro(s, p, i).tot) if vedi else (mo.forza_teatro(s, p, i, true).tot + st.extra)
+			if not vedi:
+				provv = true
+		_margine_voce(voce, th, noti.FR - noti.BR, provv)
+		if voce.capo == "":
+			righe.append(["Per ora in parità%s." % (" (senza le tessere coperte)" if provv else ""), 17, true, C_INCH])
+		else:
+			righe.append(["Per ora la %s è avanti di %d%s." % [Dati.NOMI[voce.capo], voce.margine, " (senza contare le tessere coperte dell'avversario)" if provv else ""], 17, true, COL_LATO[voce.capo]])
 		dati.append(voce)
 	_popup_scheda("Prossima guerra: %s (%s)" % [Dati.GUERRE[gid].nome, Dati.GUERRE[gid].anni], gid, dati, righe, "guerra")
 
@@ -978,6 +1000,7 @@ func mostra_esito_guerra() -> void:
 	for r in s.ult_guerra:
 		n += 1
 		var voce := {"vince": r.vince}
+		_margine_voce(voce, Dati.GUERRE[gid].teatri[n - 1], r.FR.tot - r.BR.tot, false)
 		righe.append(["%d. %s" % [n, r.nome], 22, true, C_INCH])
 		for p in ["FR", "BR"]:
 			var voci := []
@@ -1213,7 +1236,10 @@ func _prova_automatica() -> void:
 		aggiorna()
 		if parti.size() > 2:
 			match parti[2]:
-				"guerra": mostra_guerra()
+				"guerra":
+					if OS.has_environment("IS_GUERRA"):
+						mo._prepara_guerra(s, OS.get_environment("IS_GUERRA"))
+					mostra_guerra()
 				"carta": mostra_carta_evento(s.g.FR.mano[0] if not s.g.FR.mano.is_empty() else 1)
 				"regole": mostra_regole()
 				"fino:pc": mostra_esito_guerra()
