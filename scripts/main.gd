@@ -930,7 +930,7 @@ func mostra_guerra() -> void:
 	var io := vedo()
 	var tt: Array = Dati.GUERRE[gid].teatri
 	var dati := []
-	var righe := [["Le tue tessere sono scoperte, quelle dell'avversario coperte.", 17, false, Color(0.35, 0.25, 0.2)]]
+	var righe := [["Le tue tessere sono scoperte, quelle dell'avversario coperte. La forza Bonus (Alleanze, Forti, Squadre, Conflitti, parole chiave) è pubblica per entrambi.", 17, false, Color(0.35, 0.25, 0.2)]]
 	for i in tt.size():
 		var th: Dictionary = tt[i]
 		var voce := {}
@@ -952,10 +952,17 @@ func mostra_guerra() -> void:
 				forza = "Forza %d" % f.tot
 				t += "forza %d (%s)" % [f.tot, ", ".join(voci) if not voci.is_empty() else "nulla"]
 			else:
+				# la forza Bonus viene dalla mappa ed è pubblica: si mostra per esteso, coperte restano solo le tessere
 				var f2 := mo.forza_teatro(s, p, i, true)
-				forza = "Bonus %d + tessere" % (f2.tot + st.extra)
+				var voci2 := []
+				for x in f2.voci:
+					voci2.append("%s %+d" % [x[0], x[1]])
+				if st.extra > 0:
+					voci2.append("Segnalini %+d" % st.extra)
 				var nt: int = (1 if st.base >= 0 else 0) + st.bonus.size()
-				t += "%d %s, forza Bonus visibile %d" % [nt, "tessera coperta" if nt == 1 else "tessere coperte", f2.tot + st.extra]
+				var tot2: int = f2.tot + st.extra
+				forza = "Bonus %d + %d %s" % [tot2, nt, "tessera" if nt == 1 else "tessere"]
+				t += "forza Bonus %d (%s), più %d %s" % [tot2, ", ".join(voci2) if not voci2.is_empty() else "nulla", nt, "tessera coperta" if nt == 1 else "tessere coperte"]
 			voce[p] = {"base": st.base, "bonus": st.bonus, "extra": st.extra, "vedi": vedi, "forza": forza}
 			righe.append([t, 17, true, COL_LATO[p]])
 		dati.append(voce)
