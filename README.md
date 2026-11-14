@@ -15,8 +15,10 @@ Si gioca qui: https://tannoiser2.github.io/Imperial-Struggle/
   guerre con tessere Base e Bonus, forza Bonus, bottino, Punti Conquista, linee di conquista, cessioni rifiutate,
   Vittoria e Sconfitta giacobita, Dominio dell'Atlantico, nascita degli Stati Uniti; punteggio finale e vittorie
   automatiche. Compresa l'azione «pesca un Evento con 3 PD» delle correzioni ufficiali.
-- **Tutte le carte in italiano**: i 41 Eventi (con le versioni aggiornate) e i 26 Ministeri, ricomposti con le
-  illustrazioni originali e il testo tradotto; tessere, mappa e segnalini dal modulo Tabletop Simulator.
+- **Tutte le carte in italiano con la grafica originale**: i 41 Eventi (con le versioni aggiornate) e i 26
+  Ministeri sono le carte del modulo, con il testo inglese sostituito da quello italiano (`tools/carte.py`:
+  ricostruisce la pergamena sotto il testo e riscrive con Besley e Libre Caslon, simili ai caratteri originali).
+  Tessere, mappa e segnalini dal modulo Tabletop Simulator.
 - **IA** per la Francia o per la Gran Bretagna: sceglie tessere Investimento, Eventi e Ministeri, cerca alleanze
   per la prossima guerra, contende Premi e Domanda Globale, dosa Debito e Trattati. Non guarda le tessere e le
   carte coperte dell'avversario. Nel diario lascia brevi «dispacci» sulle sue intenzioni.

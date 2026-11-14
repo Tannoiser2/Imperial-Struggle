@@ -768,87 +768,24 @@ func _testo_evento_semplice(n: int) -> String:
 	var v: Dictionary = e.get("TT", e.get(vedo(), {}))
 	return "%s\n%s%s" % [e.nome, v.t, ("\nBonus (%s): %s" % [Dati.cond_testo(e.cond), v.tb]) if v.tb != "" else ""]
 
-func carta_evento(n: int, largh := 430.0) -> Control:
-	var e: Dictionary = Dati.EVENTI[n]
-	var col: Color = [C_INCH, Color(0.2, 0.45, 0.22), C_VIOLA][e.era - 1]
-	var pc := PanelContainer.new()
-	pc.add_theme_stylebox_override("panel", stile(Color(0.97, 0.93, 0.82), col, 6, 8, 10))
-	pc.custom_minimum_size.x = largh
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	pc.add_child(v)
-	var testa := etichetta("Evento %d - Era %s" % [n, Dati.ERE[e.era]], 17, F_SOTTO, col)
-	testa.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(testa)
+## Le carte sono immagini intere: grafica originale con il testo italiano (fatte da tools/carte.py).
+func _carta_img(percorso: String, largh: float, descr: String) -> Control:
 	var im := TextureRect.new()
-	im.texture = load("res://assets/carte/ev_%02d.webp" % n)
+	im.texture = load(percorso)
 	im.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	im.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	im.custom_minimum_size = Vector2(largh - 24, (largh - 24) * 0.5)
-	v.add_child(im)
-	var tit := etichetta(e.nome, 27, F_TITOLO, C_INCH, largh - 24)
-	tit.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(tit)
-	if e.tipo != "":
-		var rq := etichetta("Richiede un'Azione Maggiore dei Punti %s" % Dati.TIPI_PA[e.tipo], 17, F_CORSIVO, C_TIPO[e.tipo].darkened(0.45), largh - 24)
-		rq.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		v.add_child(rq)
-	if e.cond != "":
-		var bc := etichetta("Bonus se: " + Dati.cond_testo(e.cond), 18, F_GRASSO, Color(0.4, 0.3, 0.2), largh - 24)
-		bc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		v.add_child(bc)
-	var r := RichTextLabel.new()
-	r.bbcode_enabled = true
-	r.fit_content = true
-	r.custom_minimum_size.x = largh - 24
-	r.add_theme_font_size_override("normal_font_size", 19)
-	r.add_theme_font_size_override("bold_font_size", 19)
-	r.add_theme_font_size_override("italics_font_size", 19)
-	var t := ""
-	if e.has("TT"):
-		t = _testo_versione(e.TT)
-	else:
-		var ordine := [vedo(), Motore.avv(vedo())]
-		for p in ordine:
-			t += "[color=#%s][b]%s[/b][/color]\n%s\n\n" % [COL_LATO[p].to_html(false), Dati.NOMI[p], _testo_versione(e[p])]
-	r.text = t.strip_edges()
-	v.add_child(r)
-	return pc
+	im.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	im.custom_minimum_size = Vector2(largh, largh * 1.4)
+	im.tooltip_text = descr
+	return im
+
+func carta_evento(n: int, largh := 430.0) -> Control:
+	return _carta_img("res://assets/carte/evc_%02d.webp" % n, largh, _testo_evento_semplice(n))
 
 func carta_ministro(id: int, largh := 400.0) -> Control:
-	var d: Dictionary = Dati.MINISTERI[id]
-	var pc := PanelContainer.new()
-	pc.add_theme_stylebox_override("panel", stile(Color(0.97, 0.93, 0.82), COL_LATO[d.l], 6, 8, 10))
-	pc.custom_minimum_size.x = largh
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	pc.add_child(v)
-	var ere := []
-	for x in d.ere:
-		ere.append(Dati.ERE[x])
-	var testa := etichetta("Ministero M-%d - %s" % [id, ", ".join(ere)], 17, F_SOTTO, COL_LATO[d.l])
-	testa.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(testa)
-	var im := TextureRect.new()
-	im.texture = load("res://assets/carte/mi_%02d.webp" % id)
-	im.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	im.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	im.custom_minimum_size = Vector2(largh - 24, (largh - 24) * 0.46)
-	v.add_child(im)
-	var tit := etichetta(d.nome, 26, F_TITOLO, COL_LATO[d.l], largh - 24)
-	tit.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(tit)
-	var kw := []
-	for k in d.kw:
-		kw.append(Dati.PAROLE[k])
-	var lk := etichetta(", ".join(kw) if not kw.is_empty() else "Nessuna parola chiave", 19, F_GRASSO, Color(0.4, 0.3, 0.2))
-	lk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(lk)
-	v.add_child(etichetta(d.t, 18, null, C_INCH, largh - 24))
-	return pc
+	return _carta_img("res://assets/carte/mic_%02d.webp" % id, largh, Dati.MINISTERI[id].nome)
 
 func mostra_carta_evento(n: int) -> void:
-	apri_popup(_scorri(carta_evento(n, 470), 490, 760), "carta")
+	apri_popup(carta_evento(n, min(560.0, (dim_schermo().y - 190.0) / 1.4)), "carta")
 
 ## Scelta fra carte (Ministeri da prendere, Eventi da scartare): le carte intere, in italiano.
 func mostra_scelta_carte() -> void:
