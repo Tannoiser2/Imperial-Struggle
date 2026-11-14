@@ -192,7 +192,7 @@ func mostra_menu() -> void:
 	v.add_child(bottone("Gioca online con un amico", menu_online, L, 24))
 	v.add_child(bottone("Continua la partita salvata", continua, L, 24))
 	v.add_child(bottone("Guarda una partita fra due IA", func(): nuova_partita("demo", "FR"), L, 22))
-	v.add_child(bottone("Come si gioca", mostra_regole, L, 22))
+	v.add_child(bottone("Tutorial: regole e strategia", mostra_tutorial, L, 22))
 	var nota := etichetta("Adattamento digitale per uso personale del gioco di Ananda Gupta e Jason Matthews (GMT Games).", 17, F_CORSIVO, Color(0.35, 0.25, 0.2), L)
 	nota.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(nota)
@@ -280,7 +280,7 @@ func avvia_partita() -> void:
 	h.add_child(_bott_stretto("Guerra", mostra_guerra))
 	h.add_child(_bott_stretto("Ministeri", mostra_ministeri))
 	h.add_child(_bott_stretto("Diario", mostra_diario))
-	h.add_child(_bott_stretto("Regole", mostra_regole))
+	h.add_child(_bott_stretto("Tutorial", mostra_tutorial))
 	h.add_child(_bott_stretto("Aiuto", mostra_aiuto))
 	h.add_child(_bott_stretto("Mappa", func(): plancia.adatta()))
 	bt_veloce = _bott_stretto("IA lenta", func(): veloce = not veloce; _agg_veloce())
@@ -511,7 +511,7 @@ func _agg_fasi() -> void:
 	var nome_g: String = Dati.GUERRE[Dati.GUERRA_DOPO[s.turno]].nome if c_guerra else "Nessuna guerra"
 	if stretto and c_guerra and corrente != 14:
 		nome_g = "Guerra"
-	box_fasi.add_child(_chip(nome_g, 1 if corrente == 14 else (0 if corrente == 99 else 2), 15 if not stretto else 14, "Dopo i turni 1, 3, 4 e 6 si combatte una guerra"))
+	box_fasi.add_child(_chip(nome_g, 1 if corrente == 14 else (0 if corrente == 99 else 2), 15 if not stretto else 14, "Dopo i turni 1, 3, 4 e 5 si combatte una guerra"))
 	# sottofasi
 	if corrente == 8 and s.ar_st.has("p"):
 		var ar: Dictionary = s.ar_st
@@ -1395,6 +1395,120 @@ Per togliere una bandiera nemica e mettere la tua devi pagare due volte. L'Azion
 
 [b]Ministeri e Vantaggi.[/b] A ogni era scegli due Ministeri: restano coperti finché non li usi. I Vantaggi si ottengono controllando gli spazi collegati e si usano una volta per turno."""
 
+## Il tutorial passo passo: capitoli a sinistra, pagina a destra (illustrazione, regola, perché, Punti Vittoria).
+var tut_cap := 0
+var tut_pag := 0
+
+func mostra_tutorial(cap := -1, pag := -1) -> void:
+	if cap >= 0:
+		tut_cap = cap
+		tut_pag = max(0, pag)
+	var caps: Array = Tutorial.CAPITOLI
+	tut_cap = clampi(tut_cap, 0, caps.size() - 1)
+	var pagine: Array = caps[tut_cap].pagine
+	tut_pag = clampi(tut_pag, 0, pagine.size() - 1)
+	var pg: Dictionary = pagine[tut_pag]
+	var d := dim_schermo()
+	var largh: float = min(1560.0, d.x - 80.0)
+	var alt: float = min(900.0, d.y - 150.0)
+	var stretto := largh < 1250.0
+	var l_elenco := 210.0 if stretto else 270.0
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 14)
+	h.custom_minimum_size = Vector2(largh, alt)
+	# elenco dei capitoli
+	var el := VBoxContainer.new()
+	el.add_theme_constant_override("separation", 4)
+	for i in caps.size():
+		var titolo: String = caps[i].tit
+		var b := bottone(titolo, func(): mostra_tutorial(i, 0), l_elenco - 22.0, 15 if stretto else 16)
+		b.custom_minimum_size.y = 34
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		if i == tut_cap:
+			b.add_theme_stylebox_override("normal", stile(C_ORO, C_VIOLA, 2, 5, 6))
+		el.add_child(b)
+	h.add_child(_scorri(el, l_elenco, alt))
+	# pagina
+	var dx := VBoxContainer.new()
+	dx.add_theme_constant_override("separation", 8)
+	dx.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(dx)
+	dx.add_child(etichetta(caps[tut_cap].tit, 18, F_SOTTO, C_INCH))
+	dx.add_child(etichetta(pg.t, 30 if not stretto else 26, F_TITOLO, C_VIOLA))
+	var l_pag := largh - l_elenco - 14.0
+	var corpo := HBoxContainer.new()
+	corpo.add_theme_constant_override("separation", 16)
+	corpo.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dx.add_child(corpo)
+	var l_img: float = l_pag * (0.44 if not stretto else 0.4)
+	var alt_corpo := alt - 150.0
+	var img := TutorialImg.new()
+	img.imposta(pg.get("img", {}), F_GRASSO, Vector2(l_img, min(alt_corpo, l_img * 1.1)))
+	img.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	corpo.add_child(img)
+	var l_testo := l_pag - l_img - 30.0
+	var testi := VBoxContainer.new()
+	testi.add_theme_constant_override("separation", 12)
+	testi.add_child(_tut_testo(pg.x, l_testo - 24.0, 20 if not stretto else 18))
+	if pg.has("perche"):
+		testi.add_child(_tut_riquadro("Perché", pg.perche, l_testo - 24.0, Color(0.93, 0.89, 1.0), C_VIOLA, stretto))
+	if pg.has("pv"):
+		testi.add_child(_tut_riquadro("Punti Vittoria", pg.pv, l_testo - 24.0, Color(1.0, 0.95, 0.78), C_ORO.darkened(0.25), stretto))
+	corpo.add_child(_scorri(testi, l_testo, alt_corpo))
+	# navigazione
+	var nav := HBoxContainer.new()
+	nav.add_theme_constant_override("separation", 14)
+	var prima := tut_cap > 0 or tut_pag > 0
+	var dopo := tut_cap < caps.size() - 1 or tut_pag < pagine.size() - 1
+	var b_ind := bottone("Indietro", _tut_indietro, 180, 19)
+	b_ind.disabled = not prima
+	nav.add_child(b_ind)
+	var dove := etichetta("Pagina %d di %d del capitolo" % [tut_pag + 1, pagine.size()], 18, F_SOTTO, C_INCH)
+	dove.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dove.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nav.add_child(dove)
+	var b_av := bottone("Avanti", _tut_avanti, 180, 19)
+	b_av.disabled = not dopo
+	nav.add_child(b_av)
+	dx.add_child(nav)
+	apri_popup(h, "tutorial")
+
+func _tut_avanti() -> void:
+	var pagine: Array = Tutorial.CAPITOLI[tut_cap].pagine
+	if tut_pag < pagine.size() - 1:
+		mostra_tutorial(tut_cap, tut_pag + 1)
+	elif tut_cap < Tutorial.CAPITOLI.size() - 1:
+		mostra_tutorial(tut_cap + 1, 0)
+
+func _tut_indietro() -> void:
+	if tut_pag > 0:
+		mostra_tutorial(tut_cap, tut_pag - 1)
+	elif tut_cap > 0:
+		mostra_tutorial(tut_cap - 1, Tutorial.CAPITOLI[tut_cap - 1].pagine.size() - 1)
+
+func _tut_testo(t: String, largh: float, dim: int) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.fit_content = true
+	r.scroll_active = false
+	r.custom_minimum_size.x = largh
+	r.add_theme_font_size_override("normal_font_size", dim)
+	r.add_theme_font_size_override("bold_font_size", dim)
+	r.add_theme_font_size_override("italics_font_size", dim)
+	r.add_theme_color_override("default_color", C_INCH)
+	r.text = t
+	return r
+
+func _tut_riquadro(titolo: String, t: String, largh: float, fondo: Color, bordo: Color, stretto: bool) -> PanelContainer:
+	var pc := PanelContainer.new()
+	pc.add_theme_stylebox_override("panel", stile(fondo, bordo, 2, 6, 10))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	pc.add_child(v)
+	v.add_child(etichetta(titolo, 20, F_TITOLO, bordo.darkened(0.2)))
+	v.add_child(_tut_testo(t, largh - 24.0, 19 if not stretto else 17))
+	return pc
+
 func mostra_regole() -> void:
 	var r := RichTextLabel.new()
 	r.bbcode_enabled = true
@@ -1549,7 +1663,7 @@ func _prova_automatica() -> void:
 			await get_tree().process_frame
 			if s.att == null:
 				break
-			if popup != null and popup_tipo in ["guerra_esito", "guerra", "carta", "regole", "ministeri", "diario", "mano", "plancia", "aiuto"]:
+			if popup != null and popup_tipo in ["guerra_esito", "guerra", "carta", "regole", "ministeri", "diario", "mano", "plancia", "aiuto", "tutorial"]:
 				chiudi_popup()
 			if tocca_a_me():
 				var k := r.randi_range(0, s.att.opz.size() - 1)
@@ -1601,6 +1715,7 @@ func _prova_automatica() -> void:
 				"plancia": mostra_plancia("FR")
 				"plancia_br": mostra_plancia("BR")
 				"aiuto": mostra_aiuto(1)
+				"tutorial": mostra_tutorial(int(OS.get_environment("IS_TUT").split(",")[0]), int(OS.get_environment("IS_TUT").split(",")[1]))
 				"zoom":
 					plancia._zoom_su(plancia.area.get_center(), 2.2)
 	await get_tree().create_timer(1.2).timeout

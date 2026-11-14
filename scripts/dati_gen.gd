@@ -92,7 +92,7 @@ const SPAZI := {
 	"p_spa1": {"nome": "Spagna", "tipo": "P", "reg": "EU", "sub": "", "costo": 3, "x": 2495, "y": 991, "paese": "Spagna", "all": 1, "iniz": "FR"},
 	"p_spa2": {"nome": "Spagna", "tipo": "P", "reg": "EU", "sub": "", "costo": 3, "x": 2495, "y": 1133, "paese": "Spagna", "all": 1},
 	"p_spa3": {"nome": "Spagna", "tipo": "P", "reg": "EU", "sub": "", "costo": 2, "x": 2642, "y": 989, "paese": "Spagna", "pres": 1},
-	"p_spa4": {"nome": "Spain - 3 - Prestige - (Med", "tipo": "P", "reg": "EU", "sub": "", "costo": 3, "x": 2641, "y": 1133, "paese": "Spagna", "pres": 1},
+	"p_spa4": {"nome": "Spagna", "tipo": "P", "reg": "EU", "sub": "", "costo": 3, "x": 2641, "y": 1133, "paese": "Spagna", "pres": 1},
 	"p_sav": {"nome": "Savoia", "tipo": "P", "reg": "EU", "sub": "", "costo": 2, "x": 3238, "y": 1045, "paese": "Savoia", "all": 1},
 	"p_sar": {"nome": "Sardegna", "tipo": "P", "reg": "EU", "sub": "", "costo": 2, "x": 3559, "y": 1344, "paese": "Sardegna", "all": 1},
 	"p_ger1": {"nome": "Stati tedeschi", "tipo": "P", "reg": "EU", "sub": "", "costo": 2, "x": 3270, "y": 817, "paese": "Stati tedeschi", "all": 1},

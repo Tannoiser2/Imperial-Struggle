@@ -86,7 +86,7 @@ p_mys|Mysore||P|IN|CAR|2|loc=1
 p_spa1||EU-ALL-SPAIN1-3|P|EU||3|paese=Spagna;all=1;iniz=FR
 p_spa2||EU-ALL-SPAIN2-3|P|EU||3|paese=Spagna;all=1
 p_spa3||EU-PRES-SPAIN-2|P|EU||2|paese=Spagna;pres=1
-p_spa4|Spain - 3 - Prestige - (Med|EU-PRES-SPAIN-3|P|EU||3|paese=Spagna;pres=1
+p_spa4|Spagna|EU-PRES-SPAIN-3|P|EU||3|paese=Spagna;pres=1
 p_sav||EU-ALL-SAVOY-2|P|EU||2|paese=Savoia;all=1
 p_sar||EU-ALL-SARDIN-2|P|EU||2|paese=Sardegna;all=1
 p_ger1||EU-ALL-GERSAXONY-2|P|EU||2|paese=Stati tedeschi;all=1

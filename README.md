@@ -90,3 +90,10 @@ Valuta ogni mossa su una copia della partita; nei pesi sono entrati i consigli d
 e dei giocatori esperti: muovere per ultimi quando si ha l'Iniziativa, Commercio baltico e alleanze europee, Forti in Nord
 America, John Law e cardinali (Francia), Banca d'Inghilterra, Halley e Swift (Gran Bretagna), niente Eventi comprati a 3 PD,
 Punti Trattato prima del Debito, Debito usato a fondo prima dei cambi d'era, tessere Bonus coperte stimate 2.
+
+## Tutorial
+
+Pulsante **Tutorial** (menu e barra in alto): 14 capitoli, 47 pagine. Ogni pagina ha un'illustrazione presa dai componenti
+originali (ritagli della mappa con gli spazi cerchiati, carte, schede di guerra, pedine), la regola, un riquadro **Perché** con
+il ragionamento strategico e, dove serve, un riquadro **Punti Vittoria** che dice che cosa porta punti. Contenuti in
+`scripts/tutorial.gd`, disegno delle illustrazioni in `scripts/tutorial_img.gd`.
