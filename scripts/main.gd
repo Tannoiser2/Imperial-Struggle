@@ -53,7 +53,8 @@ var col_alto: VBoxContainer
 var pan_sx: PanelContainer
 var box_sx: VBoxContainer
 var pan_dx: PanelContainer
-var box_dec: VBoxContainer
+var box_dec: HFlowContainer
+var box_dx: VBoxContainer
 var lbl_dec: Label
 var diario: RichTextLabel
 var lbl_info: Label
@@ -285,66 +286,65 @@ func avvia_partita() -> void:
 	h.add_child(lbl_turno)
 	lbl_pv = etichetta("", 26, F_TITOLO, C_ORO)
 	h.add_child(lbl_pv)
+	h.add_child(bottone("Tessere", mostra_tessere, 0, 19))
+	h.add_child(bottone("Carte", mostra_mano, 0, 19))
 	h.add_child(bottone("Guerra", mostra_guerra, 0, 19))
 	h.add_child(bottone("Ministeri", mostra_ministeri, 0, 19))
 	h.add_child(bottone("Diario", mostra_diario, 0, 19))
 	h.add_child(bottone("Regole", mostra_regole, 0, 19))
 	h.add_child(bottone("Mappa intera", func(): plancia.adatta(), 0, 19))
 	h.add_child(bottone("Menu", _chiedi_menu, 0, 19))
-	# pannello sinistro: le due potenze
-	pan_sx = PanelContainer.new()
-	pan_sx.add_theme_stylebox_override("panel", stile(Color(C_CARTA.r, C_CARTA.g, C_CARTA.b, 0.95), C_INCH, 2, 0, 8))
-	radice.add_child(pan_sx)
-	var sc := ScrollContainer.new()
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	pan_sx.add_child(sc)
-	box_sx = VBoxContainer.new()
-	box_sx.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.add_child(box_sx)
-	# pannello destro: decisione e diario
-	pan_dx = PanelContainer.new()
-	pan_dx.add_theme_stylebox_override("panel", stile(Color(C_CARTA.r, C_CARTA.g, C_CARTA.b, 0.96), C_INCH, 2, 0, 8))
-	radice.add_child(pan_dx)
-	var vd := VBoxContainer.new()
-	pan_dx.add_child(vd)
-	lbl_dec = etichetta("", 23, F_SOTTO, C_VIOLA, 360)
-	vd.add_child(lbl_dec)
-	var sc2 := ScrollContainer.new()
-	sc2.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc2.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	sc2.size_flags_stretch_ratio = 1.7
-	vd.add_child(sc2)
-	box_dec = VBoxContainer.new()
+	# terza riga della barra in alto: le azioni di gioco
+	var sc_az := ScrollContainer.new()
+	sc_az.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc_az.custom_minimum_size.y = 92
+	sc_az.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vb.add_child(sc_az)
+	box_dec = HFlowContainer.new()
 	box_dec.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc2.add_child(box_dec)
-	lbl_info = etichetta("", 18, F_CORSIVO, Color(0.3, 0.2, 0.15), 360)
-	lbl_info.custom_minimum_size.y = 74
-	vd.add_child(lbl_info)
+	box_dec.add_theme_constant_override("h_separation", 6)
+	box_dec.add_theme_constant_override("v_separation", 5)
+	sc_az.add_child(box_dec)
+	lbl_dec = etichetta("", 20)
+	lbl_dec.visible = false
+	vb.add_child(lbl_dec)
+	# pannelli delle due potenze: Gran Bretagna a sinistra, Francia a destra
+	var pannelli := []
+	for k in 2:
+		var pan := PanelContainer.new()
+		pan.add_theme_stylebox_override("panel", stile(Color(C_CARTA.r, C_CARTA.g, C_CARTA.b, 0.95), C_INCH, 2, 0, 8))
+		radice.add_child(pan)
+		var sc := ScrollContainer.new()
+		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		pan.add_child(sc)
+		var bx := VBoxContainer.new()
+		bx.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sc.add_child(bx)
+		pannelli.append([pan, bx])
+	pan_sx = pannelli[0][0]
+	box_sx = pannelli[0][1]
+	pan_dx = pannelli[1][0]
+	box_dx = pannelli[1][1]
+	# barra in basso: il diario e le informazioni sullo spazio indicato
+	barra_basso = PanelContainer.new()
+	barra_basso.add_theme_stylebox_override("panel", stile(Color(C_CARTA.r, C_CARTA.g, C_CARTA.b, 0.97), C_ORO, 2, 0, 6))
+	radice.add_child(barra_basso)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 12)
+	barra_basso.add_child(hb)
 	diario = RichTextLabel.new()
 	diario.bbcode_enabled = true
 	diario.scroll_following = true
-	diario.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	diario.custom_minimum_size = Vector2(360, 150)
+	diario.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	diario.custom_minimum_size = Vector2(400, 60)
 	diario.add_theme_font_size_override("normal_font_size", 17)
 	diario.add_theme_font_size_override("bold_font_size", 17)
-	vd.add_child(diario)
-	# barra in basso: tessere Investimento e mano
-	barra_basso = PanelContainer.new()
-	barra_basso.add_theme_stylebox_override("panel", stile(Color(C_NOTTE.r, C_NOTTE.g, C_NOTTE.b, 0.93), C_ORO, 2, 0, 6))
-	radice.add_child(barra_basso)
-	var sb := ScrollContainer.new()
-	sb.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	barra_basso.add_child(sb)
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 18)
-	sb.add_child(hb)
-	box_tessere = HBoxContainer.new()
-	box_tessere.add_theme_constant_override("separation", 6)
-	hb.add_child(box_tessere)
+	hb.add_child(diario)
 	hb.add_child(VSeparator.new())
-	box_mano = HBoxContainer.new()
-	box_mano.add_theme_constant_override("separation", 8)
-	hb.add_child(box_mano)
+	lbl_info = etichetta("Tocca uno spazio della mappa per leggerne i dati. Cerchi sulla mappa: oro Economia, azzurro Diplomazia, rosso Militare.", 17, F_CORSIVO, Color(0.3, 0.2, 0.15), 470)
+	lbl_info.clip_text = true
+	lbl_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hb.add_child(lbl_info)
 	_disponi()
 	aggiorna()
 
@@ -358,23 +358,25 @@ func _disponi() -> void:
 		get_window().content_scale_factor = fatt
 		return
 	var d := dim_schermo()
-	var alto := 108.0 if d.x >= 1700.0 else 142.0
-	var genitore: Node = riga_fasi if d.x >= 1700.0 else col_alto
+	var largo := d.x >= 1700.0
+	var alto := 212.0 if largo else 246.0
+	var genitore: Node = riga_fasi if largo else col_alto
 	if lbl_da_fare.get_parent() != genitore:
 		lbl_da_fare.get_parent().remove_child(lbl_da_fare)
 		genitore.add_child(lbl_da_fare)
-	var basso := 160.0
-	var sx := 318.0 if d.x >= 1500 else 286.0
-	var dx := 400.0 if d.x >= 1500 else 380.0
+		if not largo:
+			col_alto.move_child(lbl_da_fare, 2)
+	var basso := 112.0
+	var lato := 318.0 if d.x >= 1500 else 292.0
 	barra_alto.position = Vector2.ZERO
 	barra_alto.size = Vector2(d.x, alto)
 	pan_sx.position = Vector2(0, alto)
-	pan_sx.size = Vector2(sx, d.y - alto - basso)
-	pan_dx.position = Vector2(d.x - dx, alto)
-	pan_dx.size = Vector2(dx, d.y - alto)
+	pan_sx.size = Vector2(lato, d.y - alto - basso)
+	pan_dx.position = Vector2(d.x - lato, alto)
+	pan_dx.size = Vector2(lato, d.y - alto - basso)
 	barra_basso.position = Vector2(0, d.y - basso)
-	barra_basso.size = Vector2(d.x - dx, basso)
-	plancia.area = Rect2(sx, alto, d.x - sx - dx, d.y - alto - basso)
+	barra_basso.size = Vector2(d.x, basso)
+	plancia.area = Rect2(lato, alto, d.x - lato * 2.0, d.y - alto - basso)
 	plancia.adatta()
 
 func vedo() -> String:
@@ -418,7 +420,7 @@ const FASI := ["Preparazione del turno", "Fase dei Ministeri", "Fase dell'Inizia
 const FASI_BREVI := ["Preparazione", "Ministeri", "Iniziativa", "Azioni", "Punteggio", "Guerra"]
 const DA_FARE := {"scarta": "scarta gli Eventi in più (se ne tengono 3)", "ministro": "scegli i due Ministeri dell'era",
 	"primo": "decidi chi fa il primo Round d'Azione", "tessera": "prendi una tessera Investimento",
-	"evento": "decidi se giocare un Evento", "azione": "spendi i Punti Azione, poi «Fine del Round d'Azione»",
+	"evento": "decidi se giocare un Evento", "azione": "tocca uno spazio evidenziato sulla mappa oppure scegli un'azione qui sotto",
 	"pc": "spendi i Punti Conquista sulla mappa", "bonus_guerra": "metti la tessera Bonus in un teatro",
 	"up": "scegli quale tessera Base tenere", "rifiuto": "cedi il Territorio oppure rifiuta", "spazi": "scegli uno spazio sulla mappa"}
 
@@ -504,17 +506,20 @@ func _premi_attuali() -> Array:
 
 func _agg_sinistra() -> void:
 	svuota(box_sx)
+	svuota(box_dx)
+	var dove := {"BR": box_sx, "FR": box_dx}
 	box_sx.add_theme_constant_override("separation", 8)
+	box_dx.add_theme_constant_override("separation", 8)
 	var L := pan_sx.size.x - 44.0
 	var premi := _premi_attuali()
-	for p in ["FR", "BR"]:
+	for p in ["BR", "FR"]:
 		var g: Dictionary = s.g[p]
 		var col: Color = COL_LATO[p]
 		var attivo: bool = s.att != null and s.att.chi == p and s.fine == null
 		var esterno := PanelContainer.new()
 		var sbe := stile(Color(1, 0.985, 0.93), C_ORO if attivo else col, 4 if attivo else 2, 7, 0)
 		esterno.add_theme_stylebox_override("panel", sbe)
-		box_sx.add_child(esterno)
+		dove[p].add_child(esterno)
 		var ve := VBoxContainer.new()
 		ve.add_theme_constant_override("separation", 0)
 		esterno.add_child(ve)
@@ -564,7 +569,7 @@ func _agg_sinistra() -> void:
 			rc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			gr.add_child(rc)
 		v.add_child(gr)
-		v.add_child(_riga("Squadre", "%d in mare, %d pronte, %d da fare" % [mo.squadre_mappa(s, p).size(), g.sq_box, g.sq_non]))
+		v.add_child(_riga("Squadre", "%d mare, %d pronte, %d da fare" % [mo.squadre_mappa(s, p).size(), g.sq_box, g.sq_non]))
 		if s.ar_st.get("p", "") == p and s.ar_st.get("tess", -1) >= 0:
 			var ar: Dictionary = s.ar_st
 			v.add_child(_titoletto("Punti Azione di questo Round", C_VIOLA))
@@ -625,29 +630,72 @@ func _tessera_btn(i: int, attiva: bool, indice_opz: int) -> Control:
 	b.custom_minimum_size = Vector2(104, 104)
 	b.tooltip_text = "Azione Maggiore: %d Punti %s\nAzione Minore: 2 Punti %s%s%s" % [d.n, Dati.TIPI_PA[d.mag], Dati.TIPI_PA[d.min], "\nPermette di giocare un Evento" if d.ev else "", "\nMiglioria militare" if d.up else ""]
 	if attiva:
-		b.pressed.connect(func(): scegli(indice_opz))
+		if indice_opz >= 0:
+			b.pressed.connect(func(): scegli(indice_opz))
 	else:
 		b.modulate = Color(0.75, 0.75, 0.75)
 		b.disabled = true
 	return b
 
 func _agg_basso() -> void:
-	svuota(box_tessere)
-	svuota(box_mano)
+	pass
+
+## Le tessere Investimento disponibili: compaiono quando c'è da sceglierne una, o con il pulsante «Tessere».
+func mostra_tessere() -> void:
 	var scelta_t: bool = tocca_a_me() and s.att.tipo == "tessera"
-	var tit := etichetta("Tessere\nInvestimento", 18, F_SOTTO, C_ORO)
-	box_tessere.add_child(tit)
+	var v := VBoxContainer.new()
+	v.add_child(etichetta("Scegli una tessera Investimento" if scelta_t else "Tessere Investimento disponibili", 30, F_TITOLO, C_VIOLA))
+	var fl := HFlowContainer.new()
+	fl.add_theme_constant_override("h_separation", 14)
+	fl.add_theme_constant_override("v_separation", 14)
 	for i in s.inv_disp:
+		var d: Dictionary = DatiGen.INVEST[i]
 		var idx := -1
 		if scelta_t:
 			for k in s.att.opz.size():
 				if s.att.opz[k].get("t", -1) == i:
 					idx = k
-		box_tessere.add_child(_tessera_btn(i, idx >= 0, idx))
+		var col := VBoxContainer.new()
+		col.custom_minimum_size.x = 230
+		var b := _tessera_btn(i, idx >= 0 or not scelta_t, idx)
+		b.custom_minimum_size = Vector2(150, 150)
+		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		col.add_child(b)
+		var t1 := etichetta("Maggiore: %d %s" % [d.n, Dati.TIPI_PA[d.mag]], 18, F_GRASSO, C_TIPO[d.mag].darkened(0.5), 226)
+		t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(t1)
+		var t2 := etichetta("Minore: 2 %s" % Dati.TIPI_PA[d.min], 17, null, C_TIPO[d.min].darkened(0.5), 226)
+		t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(t2)
+		var extra := []
+		if d.ev:
+			extra.append("Evento")
+		if d.up:
+			extra.append("Miglioria militare")
+		var t3 := etichetta(", ".join(extra) if not extra.is_empty() else "-", 16, F_CORSIVO, C_INCH, 226)
+		t3.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(t3)
+		if idx >= 0:
+			col.add_child(bottone("Prendi", func(): scegli(idx), 226))
+		fl.add_child(col)
+	v.add_child(_scorri(fl, min(dim_schermo().x - 140.0, 1250.0), 720))
+	apri_popup(v, "tessere")
+
+## Le carte Evento in mano: con il pulsante «Carte».
+func mostra_mano() -> void:
 	var io := vedo()
-	box_mano.add_child(etichetta("Eventi\n" + ("della " + Dati.NOMI[io] if modo != "ia" else "in mano"), 18, F_SOTTO, C_ORO))
-	for n in s.g[io].mano:
-		box_mano.add_child(_mini_carta(n))
+	var v := VBoxContainer.new()
+	v.add_child(etichetta("Eventi in mano" + (" della " + Dati.NOMI[io] if modo != "ia" and modo != "online" else ""), 30, F_TITOLO, C_VIOLA))
+	if s.g[io].mano.is_empty():
+		v.add_child(etichetta("Nessuna carta in mano.", 22, F_CORSIVO, C_INCH))
+	else:
+		var fl := HFlowContainer.new()
+		fl.add_theme_constant_override("h_separation", 12)
+		fl.add_theme_constant_override("v_separation", 12)
+		for n in s.g[io].mano:
+			fl.add_child(carta_evento(n, 390))
+		v.add_child(_scorri(fl, min(dim_schermo().x - 140.0, 1630.0), 780))
+	apri_popup(v, "mano")
 
 func _mini_carta(n: int) -> Control:
 	var e: Dictionary = Dati.EVENTI[n]
@@ -690,7 +738,7 @@ func _agg_decisione() -> void:
 	plancia.evidenziati = {}
 	if s.fine != null:
 		lbl_dec.text = "Partita finita: vince la %s." % Dati.NOMI[s.fine.vince]
-		box_dec.add_child(bottone("Torna al menu", mostra_menu, 360))
+		box_dec.add_child(_bott_az("Torna al menu", mostra_menu))
 		return
 	if s.att == null:
 		lbl_dec.text = ""
@@ -699,17 +747,19 @@ func _agg_decisione() -> void:
 	if not tocca_a_me():
 		lbl_dec.text = "%s sta decidendo..." % Dati.NOMI[a.chi]
 		if modo == "demo" or modo == "ia":
-			box_dec.add_child(bottone("IA veloce: " + ("sì" if veloce else "no"), func(): veloce = not veloce; _agg_decisione(), 360))
+			box_dec.add_child(_bott_az("IA veloce: " + ("sì" if veloce else "no"), func(): veloce = not veloce; _agg_decisione()))
 		return
 	lbl_dec.text = "%s: %s" % [Dati.NOMI[a.chi], a.tit]
 	if a.tipo in ["ministro", "scarta", "evento"]:
 		if popup == null:
 			mostra_scelta_carte()
-		box_dec.add_child(bottone("Mostra le carte", mostra_scelta_carte, 360))
+		box_dec.add_child(_bott_az("Mostra le carte", mostra_scelta_carte))
 		if a.tipo != "evento":
 			return
 	if a.tipo == "tessera":
-		box_dec.add_child(etichetta("Tocca una delle tessere Investimento in basso.", 19, F_CORSIVO, C_INCH, 360))
+		if popup == null:
+			mostra_tessere()
+		box_dec.add_child(_bott_az("Mostra le tessere", mostra_tessere))
 	# opzioni legate a uno spazio della mappa: si scelgono toccando la mappa
 	var per_spazio := {}
 	for i in a.opz.size():
@@ -726,17 +776,17 @@ func _agg_decisione() -> void:
 				col = C_TIPO[o1.pl.t]
 		plancia.evidenziati[sp] = col
 	if spazio_scelto != "" and per_spazio.has(spazio_scelto):
-		box_dec.add_child(etichetta(mo.nome_sp(spazio_scelto), 22, F_TITOLO, C_VIOLA))
+		box_dec.add_child(etichetta(mo.nome_sp(spazio_scelto) + ":", 22, F_TITOLO, C_ORO))
 		for i in per_spazio[spazio_scelto]:
 			box_dec.add_child(_bottone_opz(i))
-		box_dec.add_child(bottone("Indietro", func(): spazio_scelto = ""; _agg_decisione(), 360))
+		box_dec.add_child(_bott_az("Indietro", func(): spazio_scelto = ""; _agg_decisione()))
 		return
 	spazio_scelto = ""
 	if not per_spazio.is_empty():
 		var hint := "Tocca uno spazio evidenziato sulla mappa."
 		if a.tipo == "azione":
 			hint = "Tocca uno spazio evidenziato sulla mappa (oro: Economia, azzurro: Diplomazia, rosso: Militare), oppure scegli qui sotto."
-		box_dec.add_child(etichetta(hint, 18, F_CORSIVO, C_INCH, 360))
+		pass
 	for i in a.opz.size():
 		var o2: Dictionary = a.opz[i]
 		if o2.has("sp") and str(o2.sp) != "" and S.has(o2.sp) and a.tipo != "rifiuto" and per_spazio.size() > 6:
@@ -753,9 +803,14 @@ func _agg_decisione() -> void:
 				bp.add_theme_font_size_override("font_size", 16)
 				box_dec.add_child(bp)
 
+func _bott_az(testo: String, azione: Callable) -> Button:
+	var b := bottone(testo, azione, 0, 18)
+	b.custom_minimum_size = Vector2(60, 40)
+	return b
+
 func _bottone_opz(i: int) -> Button:
 	var o: Dictionary = s.att.opz[i]
-	var b := bottone(str(o.get("et", "Opzione %d" % (i + 1))), func(): scegli(i), 360, 19)
+	var b := _bott_az(str(o.get("et", "Opzione %d" % (i + 1))), func(): scegli(i))
 	if s.att.tipo == "azione" and o.a == "fine":
 		b.add_theme_stylebox_override("normal", stile(C_CARTA2, C_VIOLA, 3, 5))
 	if s.att.tipo == "evento" and o.ev > 0:
@@ -822,7 +877,7 @@ func scegli(i: int) -> void:
 func _applica(i: int) -> void:
 	var prima: Dictionary = s.band.duplicate()
 	var confl_prima: Dictionary = s.confl.duplicate()
-	if popup_tipo == "carte":
+	if popup_tipo in ["carte", "tessere", "mano"]:
 		chiudi_popup()
 	spazio_scelto = spazio_scelto if s.att.tipo == "azione" else ""
 	mo.applica(s, i)
@@ -1360,7 +1415,7 @@ func _prova_automatica() -> void:
 			await get_tree().process_frame
 			if s.att == null:
 				break
-			if popup != null and popup_tipo in ["guerra_esito", "guerra", "carta", "regole", "ministeri", "diario"]:
+			if popup != null and popup_tipo in ["guerra_esito", "guerra", "carta", "regole", "ministeri", "diario", "mano"]:
 				chiudi_popup()
 			if tocca_a_me():
 				var k := r.randi_range(0, s.att.opz.size() - 1)
@@ -1375,7 +1430,7 @@ func _prova_automatica() -> void:
 					scegli(k)
 				fatte += 1
 				if fatte % 37 == 0:
-					[mostra_guerra, mostra_ministeri, mostra_diario, mostra_regole][r.randi_range(0, 3)].call()
+					[mostra_guerra, mostra_ministeri, mostra_diario, mostra_regole, mostra_mano, mostra_tessere][r.randi_range(0, 5)].call()
 		print("CAOS: %d scelte, turno %d, PV %d, fine %s" % [fatte, s.turno, s.pv, str(s.fine)])
 		await get_tree().create_timer(0.5).timeout
 		get_viewport().get_texture().get_image().save_png(OS.get_environment("IS_FOTO") if OS.has_environment("IS_FOTO") else "/tmp/foto.png")
@@ -1404,6 +1459,8 @@ func _prova_automatica() -> void:
 						mo._prepara_guerra(s, OS.get_environment("IS_GUERRA"))
 					mostra_guerra()
 				"carta": mostra_carta_evento(s.g.FR.mano[0] if not s.g.FR.mano.is_empty() else 1)
+				"mano": mostra_mano()
+				"fino:tessera": mostra_tessere()
 				"regole": mostra_regole()
 				"fino:pc": mostra_esito_guerra()
 				"ministeri": mostra_ministeri()

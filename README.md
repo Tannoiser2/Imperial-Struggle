@@ -30,6 +30,9 @@ Si gioca qui: https://tannoiser2.github.io/Imperial-Struggle/
 - **Online in due** (stanze con codice di 4 lettere su Firebase) e **salvataggio** della partita contro l'IA sul
   dispositivo e su Firebase. Due giocatori anche sullo stesso dispositivo.
 - Mappa che si sposta trascinando (mouse o un dito) e si ingrandisce con la rotella o pizzicando con due dita.
+- Schermo: Gran Bretagna a sinistra e Francia a destra (con i Premi che ciascuna sta vincendo), in alto le fasi
+  del turno con quella in corso in evidenza e le azioni possibili, in basso il diario. Tessere Investimento,
+  carte, guerra, Ministeri e diario si aprono in riquadri quando servono o con i pulsanti in alto.
 - Interfaccia a tema Settecento con font IM Fell (titoli) ed EB Garamond (testi).
 
 ## Scelte e semplificazioni
