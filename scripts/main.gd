@@ -46,6 +46,10 @@ var plancia: Plancia
 var barra_alto: PanelContainer
 var lbl_turno: Label
 var lbl_pv: Label
+var box_fasi: HBoxContainer
+var lbl_da_fare: Label
+var riga_fasi: HBoxContainer
+var col_alto: VBoxContainer
 var pan_sx: PanelContainer
 var box_sx: VBoxContainer
 var pan_dx: PanelContainer
@@ -253,9 +257,27 @@ func avvia_partita() -> void:
 	barra_alto = PanelContainer.new()
 	barra_alto.add_theme_stylebox_override("panel", stile(C_NOTTE, C_ORO, 2, 0, 6))
 	radice.add_child(barra_alto)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 5)
+	barra_alto.add_child(vb)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 14)
-	barra_alto.add_child(h)
+	vb.add_child(h)
+	# seconda riga: tutte le fasi del turno, con quella in corso in evidenza, e che cosa c'è da fare
+	var h2 := HBoxContainer.new()
+	h2.add_theme_constant_override("separation", 12)
+	vb.add_child(h2)
+	box_fasi = HBoxContainer.new()
+	box_fasi.add_theme_constant_override("separation", 4)
+	h2.add_child(box_fasi)
+	lbl_da_fare = etichetta("", 21, F_GRASSO, Color(1.0, 0.93, 0.7))
+	lbl_da_fare.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl_da_fare.clip_text = true
+	lbl_da_fare.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	# sugli schermi stretti (iPad) l'indicazione va su una riga tutta sua
+	riga_fasi = h2
+	col_alto = vb
+	h2.add_child(lbl_da_fare)
 	h.add_child(etichetta("Imperial Struggle", 30, F_TITOLO, C_ORO))
 	lbl_turno = etichetta("", 22, F_SOTTO, C_CARTA)
 	lbl_turno.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -336,9 +358,13 @@ func _disponi() -> void:
 		get_window().content_scale_factor = fatt
 		return
 	var d := dim_schermo()
-	var alto := 62.0
+	var alto := 108.0 if d.x >= 1700.0 else 142.0
+	var genitore: Node = riga_fasi if d.x >= 1700.0 else col_alto
+	if lbl_da_fare.get_parent() != genitore:
+		lbl_da_fare.get_parent().remove_child(lbl_da_fare)
+		genitore.add_child(lbl_da_fare)
 	var basso := 160.0
-	var sx := 292.0 if d.x >= 1500 else 250.0
+	var sx := 318.0 if d.x >= 1500 else 286.0
 	var dx := 400.0 if d.x >= 1500 else 380.0
 	barra_alto.position = Vector2.ZERO
 	barra_alto.size = Vector2(d.x, alto)
@@ -372,8 +398,9 @@ func aggiorna() -> void:
 	plancia.s = s
 	plancia.queue_redraw()
 	var prossima: String = Dati.PROSSIMA_GUERRA.get(s.turno, "")
-	lbl_turno.text = "Turno %d di 6 (%s) - Era %s - %s%s" % [s.turno, Dati.ANNI[s.turno], Dati.ERE[s.era], s.fase,
+	lbl_turno.text = "Turno %d di 6 (%s) - Era %s%s" % [s.turno, Dati.ANNI[s.turno], Dati.ERE[s.era],
 		(" - Prossima guerra: " + Dati.GUERRE[prossima].nome) if prossima != "" and not s.guerra.is_empty() else ""]
+	_agg_fasi()
 	lbl_pv.text = "PV %d" % s.pv
 	lbl_pv.tooltip_text = "A 30 vince la Francia, a 0 la Gran Bretagna"
 	_agg_sinistra()
@@ -387,71 +414,207 @@ func aggiorna() -> void:
 	if s.fine != null and popup_tipo != "fine":
 		mostra_fine()
 
-func _agg_sinistra() -> void:
-	svuota(box_sx)
-	var L := pan_sx.size.x - 26.0
-	for p in ["FR", "BR"]:
-		var g: Dictionary = s.g[p]
+const FASI := ["Preparazione del turno", "Fase dei Ministeri", "Fase dell'Iniziativa", "Fase delle Azioni", "Punteggio", "Guerra"]
+const FASI_BREVI := ["Preparazione", "Ministeri", "Iniziativa", "Azioni", "Punteggio", "Guerra"]
+const DA_FARE := {"scarta": "scarta gli Eventi in più (se ne tengono 3)", "ministro": "scegli i due Ministeri dell'era",
+	"primo": "decidi chi fa il primo Round d'Azione", "tessera": "prendi una tessera Investimento",
+	"evento": "decidi se giocare un Evento", "azione": "spendi i Punti Azione, poi «Fine del Round d'Azione»",
+	"pc": "spendi i Punti Conquista sulla mappa", "bonus_guerra": "metti la tessera Bonus in un teatro",
+	"up": "scegli quale tessera Base tenere", "rifiuto": "cedi il Territorio oppure rifiuta", "spazi": "scegli uno spazio sulla mappa"}
+
+func _agg_fasi() -> void:
+	svuota(box_fasi)
+	var corrente := FASI.find(s.fase)
+	if s.fine != null:
+		corrente = -1
+	var c_guerra: bool = Dati.GUERRA_DOPO.has(s.turno)
+	for i in FASI.size():
+		var testo: String = "%d. %s" % [i + 1, FASI_BREVI[i]]
+		if i == 3:
+			var fatti: int = s.ar.FR + s.ar.BR
+			testo += " (Round %d di 8)" % min(8, fatti + (1 if corrente == 3 else 0)) if corrente == 3 else ""
+		if i == 5:
+			testo = "6. " + (Dati.GUERRE[Dati.GUERRA_DOPO[s.turno]].nome if c_guerra else ("Fine della partita" if s.turno == 6 else "Nessuna guerra"))
 		var pc := PanelContainer.new()
-		var attivo: bool = s.att != null and s.att.chi == p
-		pc.add_theme_stylebox_override("panel", stile(Color(1, 0.98, 0.9), COL_LATO[p], 5 if attivo else 2, 6, 7))
-		box_sx.add_child(pc)
-		var v := VBoxContainer.new()
-		v.add_theme_constant_override("separation", 1)
-		pc.add_child(v)
-		var chi := ""
-		if modo == "ia":
-			chi = " (tu)" if umani[p] else " (IA)"
-		elif modo == "online":
-			chi = " (tu)" if p == mio_lato else " (avversario)"
-		v.add_child(etichetta(Dati.NOMI[p] + chi, 26, F_TITOLO, COL_LATO[p]))
-		v.add_child(etichetta("Debito %d su %d, Trattati %d" % [g.deb, g.lim, g.trp], 19, F_GRASSO, C_INCH, L - 16))
-		v.add_child(etichetta("Squadre: %d in mare, %d pronte, %d da costruire" % [mo.squadre_mappa(s, p).size(), g.sq_box, g.sq_non], 17, null, C_INCH, L - 16))
-		v.add_child(etichetta("Round %d di 4, Eventi in mano %d" % [min(4, s.ar[p] + (1 if s.ar_st.get("p", "") == p else 0)), g.mano.size()], 17, null, C_INCH, L - 16))
-		var mm := []
-		for m in g.min:
-			if m.riv or p == vedo() or modo == "demo":
-				mm.append(Dati.MINISTERI[m.id].nome + ("" if m.riv else " (coperto)"))
-			else:
-				mm.append("Ministero coperto")
-		if not mm.is_empty():
-			v.add_child(etichetta("Ministeri: " + "; ".join(mm), 17, F_CORSIVO, C_INCH, L - 16))
-		var vv := []
-		for vn in s.vant:
-			if s.vant[vn].di == p:
-				vv.append(Dati.VANTAGGI[vn].it + (" (esaurito)" if s.vant[vn].es else ""))
-		if not vv.is_empty():
-			v.add_child(etichetta("Vantaggi: " + ", ".join(vv), 16, null, Color(0.3, 0.22, 0.16), L - 16))
-		if s.ar_st.get("p", "") == p and s.ar_st.tess >= 0:
-			var ar: Dictionary = s.ar_st
-			var parti := ["Maggiore %s %d" % [Dati.SIGLA_PA[ar.mag.t], ar.mag.n]]
-			if not ar.min.us:
-				parti.append("Minore %s %d" % [Dati.SIGLA_PA[ar.min.t], ar.min.n])
-			for e in ar.ex:
-				if e.n > 0:
-					parti.append("%s %s %d" % [e.get("et", "Extra"), Dati.SIGLA_PA[e.t], e.n])
-			v.add_child(etichetta("Punti Azione: " + ", ".join(parti), 18, F_GRASSO, C_VIOLA, L - 16))
-	# premi e domanda
-	var pc2 := PanelContainer.new()
-	pc2.add_theme_stylebox_override("panel", stile(Color(1, 0.98, 0.9), C_ORO, 2, 6, 7))
-	box_sx.add_child(pc2)
-	var v2 := VBoxContainer.new()
-	v2.add_theme_constant_override("separation", 1)
-	pc2.add_child(v2)
-	v2.add_child(etichetta("Premi del turno", 22, F_TITOLO, C_VIOLA))
+		var l := etichetta(testo, 18, F_GRASSO if i == corrente else F_SOTTO)
+		if i == corrente:
+			pc.add_theme_stylebox_override("panel", stile(C_ORO, Color(1, 0.97, 0.8), 2, 5, 5))
+			l.add_theme_color_override("font_color", C_NOTTE)
+		elif i < corrente:
+			pc.add_theme_stylebox_override("panel", stile(Color(0.24, 0.17, 0.26), Color(0.42, 0.34, 0.4), 1, 5, 5))
+			l.add_theme_color_override("font_color", Color(0.6, 0.54, 0.56))
+		else:
+			pc.add_theme_stylebox_override("panel", stile(Color(0.2, 0.12, 0.22), C_ORO.darkened(0.35), 1, 5, 5))
+			l.add_theme_color_override("font_color", C_CARTA)
+		pc.add_child(l)
+		box_fasi.add_child(pc)
+	if s.fine != null:
+		lbl_da_fare.text = "Partita finita: vince la %s." % Dati.NOMI[s.fine.vince]
+	elif s.att == null:
+		lbl_da_fare.text = ""
+	else:
+		var cosa: String = DA_FARE.get(s.att.tipo, str(s.att.tit).to_lower())
+		if tocca_a_me():
+			lbl_da_fare.text = "Tocca a %s: %s." % ["te" if modo != "due" else "te, " + Dati.NOMI[s.att.chi], cosa]
+		else:
+			lbl_da_fare.text = "Tocca alla %s: %s." % [Dati.NOMI[s.att.chi], cosa]
+
+# ---------- pannello delle due potenze ----------
+func _riga(nome: String, valore: String, col_valore := C_INCH) -> Control:
+	var h := HBoxContainer.new()
+	var a := etichetta(nome, 17, F_SOTTO, Color(0.42, 0.33, 0.27))
+	a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(a)
+	h.add_child(etichetta(valore, 18, F_GRASSO, col_valore))
+	return h
+
+func _titoletto(testo: String, col: Color) -> Control:
+	var pc := PanelContainer.new()
+	var sb := stile(Color(col.r, col.g, col.b, 0.14), Color(0, 0, 0, 0), 0, 3, 3)
+	sb.content_margin_left = 6
+	pc.add_theme_stylebox_override("panel", sb)
+	pc.add_child(etichetta(testo, 16, F_TITOLO, col.darkened(0.25)))
+	return pc
+
+func _voce(testo: String, largh: float, col := C_INCH, dim := 17, f: Font = null) -> Control:
+	return etichetta(testo, dim, f, col, largh)
+
+## Chi sta vincendo adesso ogni Premio del turno: [testo, lato ("" = conteso)]
+func _premi_attuali() -> Array:
+	var out := []
 	for r in Dati.REG_ORD:
 		if not s.premi.has(r):
 			continue
 		var pr: Array = Dati.PREMI[s.premi[r]]
-		var t := "%s: %d PV%s%s  (%d a %d)" % [Dati.REGIONI[r], pr[0], " +1 PT" if pr[1] > 0 else "", ", margine 2" if pr[2] == 2 else "", mo.conta_regione(s, "FR", r), mo.conta_regione(s, "BR", r)]
-		v2.add_child(etichetta(t, 17, null, C_INCH, L - 16))
-	v2.add_child(etichetta("Prestigio: 2 PV  (%d a %d)" % [mo.conta_prestigio(s, "FR"), mo.conta_prestigio(s, "BR")], 17, null, C_INCH, L - 16))
-	v2.add_child(etichetta("Domanda Globale", 22, F_TITOLO, C_VIOLA))
+		var fr := mo.conta_regione(s, "FR", r)
+		var br := mo.conta_regione(s, "BR", r)
+		var lato := "FR" if fr - br >= pr[2] else ("BR" if br - fr >= pr[2] else "")
+		var premio := "%d PV%s" % [pr[0], " +1 PT" if pr[1] > 0 else ""]
+		out.append(["%s: %s" % [Dati.REGIONI[r], premio], "%d a %d%s" % [fr, br, ", serve +2" if pr[2] == 2 else ""], lato])
+	var pf := mo.conta_prestigio(s, "FR")
+	var pb := mo.conta_prestigio(s, "BR")
+	out.append(["Prestigio: 2 PV", "%d a %d" % [pf, pb], "FR" if pf > pb else ("BR" if pb > pf else "")])
 	for m in s.domanda:
 		var rr: Array = Dati.DOMANDA[m][s.era - 1]
-		var t2 := "%s: %d PV%s%s  (%d a %d)" % [Dati.MERCI_NOME[m], rr[0], " +1 PT" if rr[1] > 0 else "", (" %+d Debito" % rr[2]) if rr[2] != 0 else "", mo.conta_merce(s, "FR", m), mo.conta_merce(s, "BR", m)]
-		v2.add_child(etichetta(t2, 17, null, C_INCH, L - 16))
-	v2.add_child(etichetta("Fra parentesi: Francia a Gran Bretagna", 15, F_CORSIVO, Color(0.4, 0.3, 0.25), L - 16))
+		var mf := mo.conta_merce(s, "FR", m)
+		var mb := mo.conta_merce(s, "BR", m)
+		var premio2 := "%d PV%s%s" % [rr[0], " +1 PT" if rr[1] > 0 else "", (" %+d Debito" % rr[2]) if rr[2] != 0 else ""]
+		out.append(["%s: %s" % [Dati.MERCI_NOME[m], premio2], "%d a %d" % [mf, mb], "FR" if mf > mb else ("BR" if mb > mf else "")])
+	return out
+
+func _agg_sinistra() -> void:
+	svuota(box_sx)
+	box_sx.add_theme_constant_override("separation", 8)
+	var L := pan_sx.size.x - 44.0
+	var premi := _premi_attuali()
+	for p in ["FR", "BR"]:
+		var g: Dictionary = s.g[p]
+		var col: Color = COL_LATO[p]
+		var attivo: bool = s.att != null and s.att.chi == p and s.fine == null
+		var esterno := PanelContainer.new()
+		var sbe := stile(Color(1, 0.985, 0.93), C_ORO if attivo else col, 4 if attivo else 2, 7, 0)
+		esterno.add_theme_stylebox_override("panel", sbe)
+		box_sx.add_child(esterno)
+		var ve := VBoxContainer.new()
+		ve.add_theme_constant_override("separation", 0)
+		esterno.add_child(ve)
+		# intestazione colorata
+		var testa := PanelContainer.new()
+		var sbt := stile(col, Color(0, 0, 0, 0), 0, 4, 6)
+		sbt.corner_radius_bottom_left = 0
+		sbt.corner_radius_bottom_right = 0
+		testa.add_theme_stylebox_override("panel", sbt)
+		ve.add_child(testa)
+		var ht := HBoxContainer.new()
+		testa.add_child(ht)
+		var bandiera := TextureRect.new()
+		bandiera.texture = load("res://assets/pezzi/%s.png" % ("band_b" if p == "FR" else "band_a"))
+		bandiera.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		bandiera.custom_minimum_size = Vector2(34, 34)
+		ht.add_child(bandiera)
+		var nome := etichetta(Dati.NOMI[p], 25, F_TITOLO, Color(1, 0.97, 0.88))
+		nome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ht.add_child(nome)
+		var chi := ""
+		if modo == "ia":
+			chi = "tu" if umani[p] else "IA"
+		elif modo == "online":
+			chi = "tu" if p == mio_lato else "avversario"
+		elif modo == "demo":
+			chi = "IA"
+		if attivo:
+			chi = (chi + ", di turno") if chi != "" else "di turno"
+		ht.add_child(etichetta(chi, 17, F_CORSIVO, Color(1, 0.93, 0.7)))
+		# corpo
+		var mc := MarginContainer.new()
+		for lato_m in ["left", "right", "top", "bottom"]:
+			mc.add_theme_constant_override("margin_" + lato_m, 8)
+		ve.add_child(mc)
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 2)
+		mc.add_child(v)
+		var disp: int = g.lim - g.deb
+		var gr := GridContainer.new()
+		gr.columns = 2
+		gr.add_theme_constant_override("h_separation", 14)
+		gr.add_theme_constant_override("v_separation", 1)
+		for cella in [["Debito", "%d su %d" % [g.deb, g.lim], C_BR if disp <= 1 else C_INCH], ["Trattati", str(g.trp), C_INCH],
+				["Round fatti", "%d di 4" % min(4, s.ar[p]), C_INCH], ["Eventi", str(g.mano.size()), C_INCH]]:
+			var rc := _riga(cella[0], cella[1], cella[2])
+			rc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			gr.add_child(rc)
+		v.add_child(gr)
+		v.add_child(_riga("Squadre", "%d in mare, %d pronte, %d da fare" % [mo.squadre_mappa(s, p).size(), g.sq_box, g.sq_non]))
+		if s.ar_st.get("p", "") == p and s.ar_st.get("tess", -1) >= 0:
+			var ar: Dictionary = s.ar_st
+			v.add_child(_titoletto("Punti Azione di questo Round", C_VIOLA))
+			v.add_child(_riga("Azione Maggiore", "%d %s" % [ar.mag.n, Dati.SIGLA_PA[ar.mag.t]], C_VIOLA))
+			if not ar.min.us:
+				v.add_child(_riga("Azione Minore", "%d %s" % [ar.min.n, Dati.SIGLA_PA[ar.min.t]], C_VIOLA))
+			for e in ar.ex:
+				if e.n > 0:
+					v.add_child(_riga(str(e.get("et", "Extra")), "%d %s" % [e.n, Dati.SIGLA_PA[e.t]], C_VIOLA))
+		v.add_child(_titoletto("Ministeri", col))
+		if g.min.is_empty():
+			v.add_child(_voce("Nessuno", L, Color(0.45, 0.38, 0.33), 16, F_CORSIVO))
+		for m in g.min:
+			if m.riv or p == vedo() or modo == "demo":
+				v.add_child(_voce(Dati.MINISTERI[m.id].nome + ("" if m.riv else " (coperto)"), L, C_INCH, 17))
+			else:
+				v.add_child(_voce("Ministero coperto", L, Color(0.45, 0.38, 0.33), 16, F_CORSIVO))
+		var vv := []
+		for vn in s.vant:
+			if s.vant[vn].di == p:
+				vv.append(Dati.VANTAGGI[vn].it + (" (usato)" if s.vant[vn].es else ""))
+		if not vv.is_empty():
+			v.add_child(_titoletto("Vantaggi", col))
+			v.add_child(_voce(", ".join(vv), L, C_INCH, 16))
+		# i Premi del turno che in questo momento andrebbero a questa potenza
+		var miei := []
+		for x in premi:
+			if x[2] == p:
+				miei.append(x)
+		v.add_child(_titoletto("Premi che sta vincendo", col))
+		if miei.is_empty():
+			v.add_child(_voce("Nessuno", L, Color(0.45, 0.38, 0.33), 16, F_CORSIVO))
+		for x in miei:
+			v.add_child(_riga(x[0], x[1], col))
+	# Premi non ancora di nessuno
+	var contesi := []
+	for x in premi:
+		if x[2] == "":
+			contesi.append(x)
+	if not contesi.is_empty():
+		var pc2 := PanelContainer.new()
+		pc2.add_theme_stylebox_override("panel", stile(Color(1, 0.985, 0.93), C_ORO, 2, 7, 8))
+		box_sx.add_child(pc2)
+		var v2 := VBoxContainer.new()
+		v2.add_theme_constant_override("separation", 2)
+		pc2.add_child(v2)
+		v2.add_child(etichetta("Premi ancora contesi", 20, F_TITOLO, C_VIOLA))
+		for x in contesi:
+			v2.add_child(_riga(x[0], x[1]))
+	box_sx.add_child(etichetta("I conteggi sono Francia a Gran Bretagna.", 15, F_CORSIVO, Color(0.4, 0.3, 0.25), L))
 
 func _tessera_btn(i: int, attiva: bool, indice_opz: int) -> Control:
 	var d: Dictionary = DatiGen.INVEST[i]
