@@ -48,6 +48,7 @@ var lbl_turno: Label
 var lbl_pv: Label
 var box_fasi: HBoxContainer
 var box_sotto: HBoxContainer
+var bt_veloce: Button
 var lbl_da_fare: Label
 var riga_fasi: HBoxContainer
 var col_alto: VBoxContainer
@@ -259,61 +260,59 @@ func avvia_partita() -> void:
 	barra_alto = PanelContainer.new()
 	barra_alto.add_theme_stylebox_override("panel", stile(C_NOTTE, C_ORO, 2, 0, 6))
 	radice.add_child(barra_alto)
+	barra_alto.clip_contents = true
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 5)
+	vb.add_theme_constant_override("separation", 4)
 	barra_alto.add_child(vb)
+	# riga 1: titolo, turno, PV e i pulsanti (compatti)
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 14)
+	h.add_theme_constant_override("separation", 6)
 	vb.add_child(h)
-	# seconda riga: tutte le fasi del turno, con quella in corso in evidenza, e che cosa c'è da fare
-	var h2 := HBoxContainer.new()
-	h2.add_theme_constant_override("separation", 12)
-	vb.add_child(h2)
-	box_fasi = HBoxContainer.new()
-	box_fasi.add_theme_constant_override("separation", 3)
-	h2.add_child(box_fasi)
-	# terza riga: le sottofasi (del Round d'Azione o della guerra) e l'indicazione di che cosa fare
-	var h3 := HBoxContainer.new()
-	h3.add_theme_constant_override("separation", 10)
-	vb.add_child(h3)
-	box_sotto = HBoxContainer.new()
-	box_sotto.add_theme_constant_override("separation", 3)
-	h3.add_child(box_sotto)
-	lbl_da_fare = etichetta("", 21, F_GRASSO, Color(1.0, 0.93, 0.7))
-	lbl_da_fare.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl_da_fare.clip_text = true
-	lbl_da_fare.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	# sugli schermi stretti (iPad) l'indicazione va su una riga tutta sua
-	riga_fasi = h2
-	col_alto = vb
-	h3.add_child(lbl_da_fare)
-	h.add_child(etichetta("Imperial Struggle", 30, F_TITOLO, C_ORO))
-	lbl_turno = etichetta("", 22, F_SOTTO, C_CARTA)
+	h.add_child(etichetta("Imperial Struggle", 24, F_TITOLO, C_ORO))
+	lbl_turno = etichetta("", 19, F_SOTTO, C_CARTA)
 	lbl_turno.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lbl_turno.clip_text = true
 	h.add_child(lbl_turno)
-	lbl_pv = etichetta("", 26, F_TITOLO, C_ORO)
+	lbl_pv = etichetta("", 23, F_TITOLO, C_ORO)
 	h.add_child(lbl_pv)
-	h.add_child(bottone("Tessere", mostra_tessere, 0, 19))
-	h.add_child(bottone("Carte", mostra_mano, 0, 19))
-	h.add_child(bottone("Guerra", mostra_guerra, 0, 19))
-	h.add_child(bottone("Ministeri", mostra_ministeri, 0, 19))
-	h.add_child(bottone("Diario", mostra_diario, 0, 19))
-	h.add_child(bottone("Regole", mostra_regole, 0, 19))
-	h.add_child(bottone("Aiuto", mostra_aiuto, 0, 19))
-	h.add_child(bottone("Mappa intera", func(): plancia.adatta(), 0, 19))
-	h.add_child(bottone("Menu", _chiedi_menu, 0, 19))
-	# terza riga della barra in alto: le azioni di gioco
+	h.add_child(_bott_stretto("Tessere", mostra_tessere))
+	h.add_child(_bott_stretto("Carte", mostra_mano))
+	h.add_child(_bott_stretto("Guerra", mostra_guerra))
+	h.add_child(_bott_stretto("Ministeri", mostra_ministeri))
+	h.add_child(_bott_stretto("Diario", mostra_diario))
+	h.add_child(_bott_stretto("Regole", mostra_regole))
+	h.add_child(_bott_stretto("Aiuto", mostra_aiuto))
+	h.add_child(_bott_stretto("Mappa", func(): plancia.adatta()))
+	bt_veloce = _bott_stretto("IA lenta", func(): veloce = not veloce; _agg_veloce())
+	bt_veloce.tooltip_text = "Velocità delle mosse dell'IA"
+	h.add_child(bt_veloce)
+	h.add_child(_bott_stretto("Menu", _chiedi_menu))
+	# riga 2: le 14 fasi del turno, con quella in corso in evidenza
+	box_fasi = HBoxContainer.new()
+	box_fasi.add_theme_constant_override("separation", 3)
+	box_fasi.custom_minimum_size.y = 26
+	vb.add_child(box_fasi)
+	# riga 3: le sottofasi (del Round d'Azione o della guerra)
+	box_sotto = HBoxContainer.new()
+	box_sotto.add_theme_constant_override("separation", 3)
+	box_sotto.custom_minimum_size.y = 26
+	vb.add_child(box_sotto)
+	# riga 4: le azioni da fare (altezza fissa: due file di pulsanti, poi si scorre)
 	var sc_az := ScrollContainer.new()
 	sc_az.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc_az.custom_minimum_size.y = 92
-	sc_az.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc_az.custom_minimum_size.y = 76
 	vb.add_child(sc_az)
 	box_dec = HFlowContainer.new()
 	box_dec.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box_dec.add_theme_constant_override("h_separation", 6)
-	box_dec.add_theme_constant_override("v_separation", 5)
+	box_dec.add_theme_constant_override("h_separation", 5)
+	box_dec.add_theme_constant_override("v_separation", 4)
 	sc_az.add_child(box_dec)
+	# riga 5: che cosa deve fare il giocatore
+	lbl_da_fare = etichetta("", 19, F_GRASSO, Color(1.0, 0.93, 0.7))
+	lbl_da_fare.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl_da_fare.clip_text = true
+	lbl_da_fare.custom_minimum_size.y = 24
+	vb.add_child(lbl_da_fare)
 	lbl_dec = etichetta("", 20)
 	lbl_dec.visible = false
 	vb.add_child(lbl_dec)
@@ -357,6 +356,31 @@ func avvia_partita() -> void:
 	_disponi()
 	aggiorna()
 
+## Altezza fissa della barra in alto: pulsanti, fasi, sottofasi, azioni da fare, indicazione.
+const ALTO_BARRA := 212.0
+
+## Pulsante compatto per la barra in alto.
+func _bott_stretto(testo: String, azione: Callable, dim := 16) -> Button:
+	var b := bottone(testo, azione, 0, dim)
+	b.custom_minimum_size = Vector2(30, 30)
+	var stili := {"normal": stile(C_CARTA, C_INCH, 2, 5), "hover": stile(Color(1.0, 0.96, 0.84), C_ORO, 2, 5),
+		"pressed": stile(C_CARTA2, C_VIOLA, 2, 5), "disabled": stile(Color(0.7, 0.66, 0.58, 0.7), Color(0.4, 0.35, 0.3), 1, 5),
+		"focus": stile(Color(0, 0, 0, 0), C_ORO, 2, 5)}
+	for k in stili:
+		var sb: StyleBoxFlat = stili[k]
+		sb.content_margin_left = 7
+		sb.content_margin_right = 7
+		sb.content_margin_top = 2
+		sb.content_margin_bottom = 2
+		b.add_theme_stylebox_override(k, sb)
+	return b
+
+func _agg_veloce() -> void:
+	if bt_veloce == null or not is_instance_valid(bt_veloce):
+		return
+	bt_veloce.visible = modo == "demo" or modo == "ia"
+	bt_veloce.text = "IA veloce" if veloce else "IA lenta"
+
 func _disponi() -> void:
 	if not in_partita or barra_alto == null or not is_instance_valid(barra_alto):
 		return
@@ -368,7 +392,7 @@ func _disponi() -> void:
 		return
 	var d := dim_schermo()
 	var largo := d.x >= 1700.0
-	var alto := 250.0 if largo else 256.0
+	var alto := ALTO_BARRA
 	var basso := 112.0
 	var lato := 318.0 if d.x >= 1500 else 292.0
 	barra_alto.position = Vector2.ZERO
@@ -454,16 +478,16 @@ func _chip(testo: String, stato: int, dim := 17, descr := "") -> PanelContainer:
 	var l := etichetta(testo, dim, F_GRASSO if stato == 1 or stato == 3 else F_SOTTO)
 	match stato:
 		1:
-			pc.add_theme_stylebox_override("panel", stile(C_ORO, Color(1, 0.97, 0.8), 2, 5, 5))
+			pc.add_theme_stylebox_override("panel", stile(C_ORO, Color(1, 0.97, 0.8), 2, 5, 3))
 			l.add_theme_color_override("font_color", C_NOTTE)
 		3:
-			pc.add_theme_stylebox_override("panel", stile(Color(0.95, 0.9, 0.75), C_ORO, 2, 5, 5))
+			pc.add_theme_stylebox_override("panel", stile(Color(0.95, 0.9, 0.75), C_ORO, 2, 5, 3))
 			l.add_theme_color_override("font_color", C_NOTTE)
 		0:
-			pc.add_theme_stylebox_override("panel", stile(Color(0.24, 0.17, 0.26), Color(0.42, 0.34, 0.4), 1, 5, 5))
+			pc.add_theme_stylebox_override("panel", stile(Color(0.24, 0.17, 0.26), Color(0.42, 0.34, 0.4), 1, 5, 3))
 			l.add_theme_color_override("font_color", Color(0.72, 0.66, 0.68))
 		_:
-			pc.add_theme_stylebox_override("panel", stile(Color(0.2, 0.12, 0.22), C_ORO.darkened(0.35), 1, 5, 5))
+			pc.add_theme_stylebox_override("panel", stile(Color(0.2, 0.12, 0.22), C_ORO.darkened(0.35), 1, 5, 3))
 			l.add_theme_color_override("font_color", C_CARTA)
 	pc.add_child(l)
 	if descr != "":
@@ -483,11 +507,11 @@ func _agg_fasi() -> void:
 		var testo: String = "%d %s" % [i + 1, FASI14_BREVI[i]]
 		if stretto and st != 1:
 			testo = str(i + 1) if i < 6 or i > 8 else testo
-		box_fasi.add_child(_chip(testo, st, 16 if not stretto else 15, "%d. %s: %s" % [i + 1, FASI14[i], FASI14_DESCR[i]]))
+		box_fasi.add_child(_chip(testo, st, 15 if not stretto else 14, "%d. %s: %s" % [i + 1, FASI14[i], FASI14_DESCR[i]]))
 	var nome_g: String = Dati.GUERRE[Dati.GUERRA_DOPO[s.turno]].nome if c_guerra else "Nessuna guerra"
 	if stretto and c_guerra and corrente != 14:
 		nome_g = "Guerra"
-	box_fasi.add_child(_chip(nome_g, 1 if corrente == 14 else (0 if corrente == 99 else 2), 16 if not stretto else 15, "Dopo i turni 1, 3, 4 e 6 si combatte una guerra"))
+	box_fasi.add_child(_chip(nome_g, 1 if corrente == 14 else (0 if corrente == 99 else 2), 15 if not stretto else 14, "Dopo i turni 1, 3, 4 e 6 si combatte una guerra"))
 	# sottofasi
 	if corrente == 8 and s.ar_st.has("p"):
 		var ar: Dictionary = s.ar_st
@@ -498,26 +522,26 @@ func _agg_fasi() -> void:
 			passo = 0
 		elif s.att != null and s.att.tipo == "evento":
 			passo = 1
-		box_sotto.add_child(_chip("Round %d di 8: %s" % [min(8, s.ar.FR + s.ar.BR + 1), Dati.NOMI[ar.p]], 3, 16))
+		box_sotto.add_child(_chip("Round %d di 8: %s" % [min(8, s.ar.FR + s.ar.BR + 1), Dati.NOMI[ar.p]], 3, 14))
 		var nomi := ["a Investimento", "b Evento", "c Punti Azione"]
 		var descr := ["Prendi una tessera Investimento (oppure usa un potere che la sostituisce)", "Se la tessera ha il simbolo, puoi giocare un Evento",
 			"Spendi i punti dell'Azione Maggiore e di quella Minore; la Miglioria militare se la tessera la concede"]
 		for i in 3:
-			box_sotto.add_child(_chip(nomi[i], 1 if i == passo else (0 if i < passo else 2), 16, descr[i]))
+			box_sotto.add_child(_chip(nomi[i], 1 if i == passo else (0 if i < passo else 2), 15, descr[i]))
 		if passo == 2 and not stretto:
 			if int(ar.mag.n) > 0:
-				box_sotto.add_child(_chip("Maggiore: %s %d" % [Dati.SIGLA_PA.get(ar.mag.t, "?"), int(ar.mag.n)], 3, 15))
+				box_sotto.add_child(_chip("Maggiore: %s %d" % [Dati.SIGLA_PA.get(ar.mag.t, "?"), int(ar.mag.n)], 3, 14))
 			if not ar.min.us and int(ar.min.n) > 0:
-				box_sotto.add_child(_chip("Minore: %s %d" % [Dati.SIGLA_PA.get(ar.min.t, "?"), int(ar.min.n)], 3, 15))
+				box_sotto.add_child(_chip("Minore: %s %d" % [Dati.SIGLA_PA.get(ar.min.t, "?"), int(ar.min.n)], 3, 14))
 			if ar.up:
-				box_sotto.add_child(_chip("Miglioria militare", 3, 15))
+				box_sotto.add_child(_chip("Miglioria militare", 3, 14))
 	elif corrente == 14 and not s.guerra.is_empty():
 		var tt: Array = Dati.GUERRE[s.guerra.id].teatri
 		var fatto: int = s.ult_guerra.size()
 		for i in tt.size():
-			box_sotto.add_child(_chip("Teatro %d: %s" % [i + 1, tt[i].nome] if not stretto else ("T%d" % (i + 1) if i != fatto else tt[i].nome), 1 if i == fatto else (0 if i < fatto else 2), 16, tt[i].nome))
+			box_sotto.add_child(_chip("Teatro %d: %s" % [i + 1, tt[i].nome] if not stretto else ("T%d" % (i + 1) if i != fatto else tt[i].nome), 1 if i == fatto else (0 if i < fatto else 2), 15, tt[i].nome))
 	elif corrente == 5 or corrente == 6 or corrente == 7 or corrente == 11:
-		box_sotto.add_child(_chip("%d. %s" % [corrente + 1, FASI14[corrente]], 3, 16, FASI14_DESCR[corrente]))
+		box_sotto.add_child(_chip("%d. %s" % [corrente + 1, FASI14[corrente]], 3, 15, FASI14_DESCR[corrente]))
 	if s.fine != null:
 		lbl_da_fare.text = "Partita finita: vince la %s." % Dati.NOMI[s.fine.vince]
 	elif s.att == null:
@@ -810,6 +834,7 @@ func _agg_diario() -> void:
 
 func _agg_decisione() -> void:
 	svuota(box_dec)
+	_agg_veloce()
 	plancia.evidenziati = {}
 	if s.fine != null:
 		lbl_dec.text = "Partita finita: vince la %s." % Dati.NOMI[s.fine.vince]
@@ -821,8 +846,6 @@ func _agg_decisione() -> void:
 	var a: Dictionary = s.att
 	if not tocca_a_me():
 		lbl_dec.text = "%s sta decidendo..." % Dati.NOMI[a.chi]
-		if modo == "demo" or modo == "ia":
-			box_dec.add_child(_bott_az("IA veloce: " + ("sì" if veloce else "no"), func(): veloce = not veloce; _agg_decisione()))
 		return
 	lbl_dec.text = "%s: %s" % [Dati.NOMI[a.chi], a.tit]
 	if a.tipo in ["ministro", "scarta", "evento"]:
@@ -875,13 +898,11 @@ func _agg_decisione() -> void:
 		for i in a.opz.size():
 			if a.opz[i].a == "pref":
 				var bp := _bottone_opz(i)
-				bp.add_theme_font_size_override("font_size", 16)
+				bp.add_theme_font_size_override("font_size", 15)
 				box_dec.add_child(bp)
 
 func _bott_az(testo: String, azione: Callable) -> Button:
-	var b := bottone(testo, azione, 0, 18)
-	b.custom_minimum_size = Vector2(60, 40)
-	return b
+	return _bott_stretto(testo, azione, 17)
 
 func _bottone_opz(i: int) -> Button:
 	var o: Dictionary = s.att.opz[i]
