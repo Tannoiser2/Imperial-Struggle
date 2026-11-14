@@ -81,34 +81,25 @@ func _spazio_a(p: Vector2) -> String:
 	return best
 
 func _gui_input(e: InputEvent) -> void:
+	# Un dito (o il mouse) trascina e tocca: arriva come mouse emulato. Due dita: pizzico per lo zoom.
 	if e is InputEventScreenTouch:
 		if e.pressed:
 			tocchi[e.index] = e.position
-			mosso = 0.0
-			if tocchi.size() == 2:
-				var v: Array = tocchi.values()
-				pizzico_dist = (v[0] as Vector2).distance_to(v[1])
 		else:
-			if tocchi.size() == 1 and mosso < 14.0:
-				var id := _spazio_a(e.position)
-				if id != "":
-					spazio_cliccato.emit(id)
 			tocchi.erase(e.index)
-		accept_event()
+		if tocchi.size() == 2:
+			var v: Array = tocchi.values()
+			pizzico_dist = (v[0] as Vector2).distance_to(v[1])
+			mosso = 999.0
 	elif e is InputEventScreenDrag:
 		tocchi[e.index] = e.position
-		mosso += e.relative.length()
-		if tocchi.size() == 1:
-			origine += e.relative
-			_limita()
-			queue_redraw()
-		elif tocchi.size() >= 2:
+		if tocchi.size() >= 2:
 			var v2: Array = tocchi.values()
 			var d: float = (v2[0] as Vector2).distance_to(v2[1])
 			if pizzico_dist > 10.0 and d > 10.0:
 				_zoom_su(((v2[0] as Vector2) + (v2[1] as Vector2)) / 2.0, d / pizzico_dist)
 			pizzico_dist = d
-		accept_event()
+			mosso = 999.0
 	elif e is InputEventMagnifyGesture:
 		_zoom_su(e.position, e.factor)
 	elif e is InputEventPanGesture:
@@ -116,8 +107,6 @@ func _gui_input(e: InputEvent) -> void:
 		_limita()
 		queue_redraw()
 	elif e is InputEventMouseButton:
-		if e.device == InputEvent.DEVICE_ID_EMULATION:
-			return
 		if e.button_index == MOUSE_BUTTON_WHEEL_UP and e.pressed:
 			_zoom_su(e.position, 1.12)
 		elif e.button_index == MOUSE_BUTTON_WHEEL_DOWN and e.pressed:
@@ -127,19 +116,18 @@ func _gui_input(e: InputEvent) -> void:
 				premuto = true
 				mosso = 0.0
 			else:
-				if premuto and mosso < 8.0 and e.button_index == MOUSE_BUTTON_LEFT:
+				if premuto and mosso < 10.0 and e.button_index == MOUSE_BUTTON_LEFT and tocchi.size() < 2:
 					var id2 := _spazio_a(e.position)
 					if id2 != "":
 						spazio_cliccato.emit(id2)
 				premuto = false
 	elif e is InputEventMouseMotion:
-		if e.device == InputEvent.DEVICE_ID_EMULATION:
-			return
 		if premuto:
-			mosso += e.relative.length()
-			origine += e.relative
-			_limita()
-			queue_redraw()
+			if tocchi.size() < 2:
+				mosso += e.relative.length()
+				origine += e.relative
+				_limita()
+				queue_redraw()
 		else:
 			var id3 := _spazio_a(e.position)
 			if id3 != sopra:

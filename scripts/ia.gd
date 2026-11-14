@@ -194,7 +194,7 @@ func valuta(s: Dictionary, io: String) -> float:
 		var g: Dictionary = s.g[p]
 		var sg2 := 1.0 if p == "FR" else -1.0
 		var x := 0.0
-		x -= 0.5 * g.deb
+		x -= 0.4 * g.deb + 1.0 * max(0, g.deb - (g.lim - 2)) + 1.2 * max(0, g.deb - (g.lim - 1))
 		x += 0.12 * (g.lim - 6)
 		x += 0.38 * min(g.trp, 4) + 0.1 * max(0, g.trp - 4)
 		x += 0.45 * g.sq_box + 0.1 * g.sq_non

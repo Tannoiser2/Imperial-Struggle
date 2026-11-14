@@ -539,11 +539,12 @@ func _agg_decisione() -> void:
 			box_dec.add_child(bottone("IA veloce: " + ("sì" if veloce else "no"), func(): veloce = not veloce; _agg_decisione(), 360))
 		return
 	lbl_dec.text = "%s: %s" % [Dati.NOMI[a.chi], a.tit]
-	if a.tipo in ["ministro", "scarta"]:
+	if a.tipo in ["ministro", "scarta", "evento"]:
 		if popup == null:
 			mostra_scelta_carte()
 		box_dec.add_child(bottone("Mostra le carte", mostra_scelta_carte, 360))
-		return
+		if a.tipo != "evento":
+			return
 	if a.tipo == "tessera":
 		box_dec.add_child(etichetta("Tocca una delle tessere Investimento in basso.", 19, F_CORSIVO, C_INCH, 360))
 	# opzioni legate a uno spazio della mappa: si scelgono toccando la mappa
@@ -863,14 +864,26 @@ func mostra_scelta_carte() -> void:
 	for i in a.opz.size():
 		var o: Dictionary = a.opz[i]
 		var col := VBoxContainer.new()
+		var testo_b := "Scegli"
 		if a.tipo == "ministro":
 			if o.m == 0:
 				col.add_child(etichetta("Nessun cambio", 22, F_SOTTO, C_INCH, 300))
 			else:
 				col.add_child(carta_ministro(o.m, 390))
+			if o.m == 0 or o.has("i"):
+				testo_b = str(o.et)
+		elif o.ev == 0:
+			col.add_child(etichetta("Tieni le carte per un altro Round.", 22, F_SOTTO, C_INCH, 380))
+			testo_b = "Non giocare Eventi"
 		else:
 			col.add_child(carta_evento(o.ev, 390))
-		var b := bottone(str(o.et) if a.tipo == "ministro" and (o.m == 0 or o.has("i")) else ("Scegli" if a.tipo == "ministro" else "Scarta questa"), func(): scegli(i), 390)
+			testo_b = "Gioca questo Evento" if a.tipo == "evento" else "Scarta questa"
+			if a.tipo == "evento":
+				var e: Dictionary = Dati.EVENTI[o.ev]
+				var si: bool = mo.cond_ok(s, a.chi, e.cond)
+				if e.cond != "":
+					col.add_child(etichetta("Bonus: " + ("sì, la condizione è soddisfatta" if si else "no, la condizione non è soddisfatta"), 18, F_GRASSO, Color(0.15, 0.45, 0.15) if si else C_BR, 380))
+		var b := bottone(testo_b, func(): scegli(i), 390)
 		col.add_child(b)
 		griglia.add_child(col)
 	v.add_child(_scorri(griglia, larg_tot, 800))
@@ -1198,6 +1211,38 @@ func _prova_automatica() -> void:
 		return
 	var parti := prova.split(",")
 	await get_tree().create_timer(0.6).timeout
+	if parti[0] == "caos":
+		# una partita intera passando dall'interfaccia: scelte a caso per l'umano, IA per l'altro lato
+		veloce = true
+		nuova_partita("ia", "FR" if parti.size() < 3 else parti[2], 99 + int(parti[1]))
+		var r := RandomNumberGenerator.new()
+		r.seed = int(parti[1])
+		var fatte := 0
+		while s.fine == null and fatte < 1500:
+			await get_tree().process_frame
+			if s.att == null:
+				break
+			if popup != null and popup_tipo in ["guerra_esito", "guerra", "carta", "regole", "ministeri", "diario"]:
+				chiudi_popup()
+			if tocca_a_me():
+				var k := r.randi_range(0, s.att.opz.size() - 1)
+				if r.randf() < 0.75:
+					k = ia.decidi(s)
+				var o: Dictionary = s.att.opz[k]
+				if o.has("sp") and str(o.sp) != "" and r.randf() < 0.5:
+					_clic_spazio(str(o.sp))
+					if spazio_scelto != "":
+						scegli(k)
+				else:
+					scegli(k)
+				fatte += 1
+				if fatte % 37 == 0:
+					[mostra_guerra, mostra_ministeri, mostra_diario, mostra_regole][r.randi_range(0, 3)].call()
+		print("CAOS: %d scelte, turno %d, PV %d, fine %s" % [fatte, s.turno, s.pv, str(s.fine)])
+		await get_tree().create_timer(0.5).timeout
+		get_viewport().get_texture().get_image().save_png(OS.get_environment("IS_FOTO") if OS.has_environment("IS_FOTO") else "/tmp/foto.png")
+		get_tree().quit()
+		return
 	if parti[0] != "menu":
 		veloce = true
 		nuova_partita("ia" if parti[0] != "demo" else "demo", "FR", 4242)
@@ -1206,6 +1251,12 @@ func _prova_automatica() -> void:
 			if s.att == null or s.fine != null:
 				break
 			mo.applica(s, ia.decidi(s))
+		if parti.size() > 2 and parti[2].begins_with("fino:"):
+			var cerco := parti[2].substr(5)
+			var g := 0
+			while s.fine == null and g < 600 and not (s.att.tipo == cerco and s.att.chi == "FR"):
+				mo.applica(s, ia.decidi(s))
+				g += 1
 		chiudi_popup()
 		aggiorna()
 		if parti.size() > 2:
