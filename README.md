@@ -97,3 +97,12 @@ Pulsante **Tutorial** (menu e barra in alto): 14 capitoli, 47 pagine. Ogni pagin
 originali (ritagli della mappa con gli spazi cerchiati, carte, schede di guerra, pedine), la regola, un riquadro **Perché** con
 il ragionamento strategico e, dove serve, un riquadro **Punti Vittoria** che dice che cosa porta punti. Contenuti in
 `scripts/tutorial.gd`, disegno delle illustrazioni in `scripts/tutorial_img.gd`.
+
+## Partita guidata
+
+Menu, «Partita guidata: impara giocando»: si gioca con la Francia contro l'IA (partita sempre uguale, seme 1697) con il
+riquadro **La guida** sulla mappa (`scripts/guida.gd`). A ogni decisione spiega il passo, consiglia una mossa (pulsante
+«Segui il consiglio», pulsante e spazio consigliati evidenziati), mostra il piano del resto del Round e che cosa cambia
+(Premi, Prestigio, merci, Vantaggi, forza nella prossima guerra, Debito, PV) confrontando la partita prima e dopo su una
+copia; racconta le mosse dell'avversario con gli stessi effetti e riassume dove sono i punti del turno.
+`IS_PROVA=guida,0` gioca una partita intera seguendo sempre la guida.

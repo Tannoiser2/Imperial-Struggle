@@ -186,6 +186,7 @@ func mostra_menu() -> void:
 	v.add_child(st)
 	v.add_child(HSeparator.new())
 	var L := 620.0
+	v.add_child(bottone("Partita guidata: impara giocando", func(): nuova_partita("ia", "FR", 1697, true), L, 24))
 	v.add_child(bottone("Gioca con la Francia contro l'IA", func(): nuova_partita("ia", "FR"), L, 24))
 	v.add_child(bottone("Gioca con la Gran Bretagna contro l'IA", func(): nuova_partita("ia", "BR"), L, 24))
 	v.add_child(bottone("Due giocatori su questo dispositivo", func(): nuova_partita("due", "FR"), L, 24))
@@ -197,7 +198,8 @@ func mostra_menu() -> void:
 	nota.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(nota)
 
-func nuova_partita(m: String, lato: String, seme := -1) -> void:
+func nuova_partita(m: String, lato: String, seme := -1, con_guida := false) -> void:
+	guidata = con_guida
 	modo = m
 	umani = {"FR": m == "due" or (m == "ia" and lato == "FR"), "BR": m == "due" or (m == "ia" and lato == "BR")}
 	mio_lato = lato
@@ -228,13 +230,14 @@ func continua() -> void:
 	modo = dati.modo
 	umani = dati.umani
 	mio_lato = dati.lato
+	guidata = dati.get("guidata", false)
 	avvia_partita()
 
 func salva() -> void:
 	if modo == "online" or modo == "demo" or s.is_empty() or s.nd == ult_salv:
 		return
 	ult_salv = s.nd
-	var testo := var_to_str({"s": s, "modo": modo, "umani": umani, "lato": mio_lato})
+	var testo := var_to_str({"s": s, "modo": modo, "umani": umani, "lato": mio_lato, "guidata": guidata})
 	var f := FileAccess.open(SALVA_LOCALE, FileAccess.WRITE)
 	if f != null:
 		f.store_string(testo)
@@ -256,6 +259,13 @@ func avvia_partita() -> void:
 	plancia.spazio_cliccato.connect(_clic_spazio)
 	plancia.spazio_indicato.connect(_info_spazio)
 	radice.add_child(plancia)
+	guida_pan = null
+	guida_cons = {}
+	guida_nd = -1
+	guida_commenti = []
+	guida_turno = 0
+	if guidata:
+		_crea_guida()
 	# barra in alto
 	barra_alto = PanelContainer.new()
 	barra_alto.add_theme_stylebox_override("panel", stile(C_NOTTE, C_ORO, 2, 0, 6))
@@ -405,6 +415,7 @@ func _disponi() -> void:
 	barra_basso.size = Vector2(d.x, basso)
 	plancia.area = Rect2(lato, alto, d.x - lato * 2.0, d.y - alto - basso)
 	plancia.adatta()
+	_disponi_guida()
 
 func vedo() -> String:
 	if modo == "online" or modo == "ia":
@@ -436,6 +447,7 @@ func aggiorna() -> void:
 	_agg_basso()
 	_agg_diario()
 	_agg_decisione()
+	_agg_guida()
 	if not s.guerra.is_empty() and s.guerra.id != guerra_vista or (s.guerra.is_empty() and guerra_vista != "" and guerra_vista != "fine"):
 		guerra_vista = s.guerra.id if not s.guerra.is_empty() else "fine"
 		if not s.ult_guerra.is_empty():
@@ -744,6 +756,8 @@ func mostra_tessere() -> void:
 	var scelta_t: bool = tocca_a_me() and s.att.tipo == "tessera"
 	var v := VBoxContainer.new()
 	v.add_child(etichetta("Scegli una tessera Investimento" if scelta_t else "Tessere Investimento disponibili", 30, F_TITOLO, C_VIOLA))
+	if scelta_t and guidata:
+		v.add_child(_box_consiglio(min(dim_schermo().x - 140.0, 1500.0)))
 	var fl := HFlowContainer.new()
 	fl.add_theme_constant_override("h_separation", 14)
 	fl.add_theme_constant_override("v_separation", 14)
@@ -775,9 +789,13 @@ func mostra_tessere() -> void:
 		t3.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(t3)
 		if idx >= 0:
-			col.add_child(bottone("Prendi", func(): scegli(idx), 226))
+			var bp := bottone("Prendi", func(): scegli(idx), 226)
+			if guidata and guida_nd == s.nd and guida_cons.get("i", -1) == idx:
+				bp.text = "Consigliata: prendi"
+				bp.add_theme_stylebox_override("normal", stile(C_ORO, C_VIOLA, 3, 6, 6))
+			col.add_child(bp)
 		fl.add_child(col)
-	v.add_child(_scorri(fl, min(dim_schermo().x - 140.0, 1250.0), 720))
+	v.add_child(_scorri(fl, min(dim_schermo().x - 140.0, 1250.0), min(720.0, dim_schermo().y - (360.0 if guidata and scelta_t else 220.0))))
 	apri_popup(v, "tessere")
 
 ## Le carte Evento in mano: con il pulsante «Carte».
@@ -907,6 +925,9 @@ func _bott_az(testo: String, azione: Callable) -> Button:
 func _bottone_opz(i: int) -> Button:
 	var o: Dictionary = s.att.opz[i]
 	var b := _bott_az(str(o.get("et", "Opzione %d" % (i + 1))), func(): scegli(i))
+	if guidata and guida_nd == s.nd and guida_cons.get("i", -1) == i:
+		b.text = "Consigliato: " + b.text
+		b.add_theme_stylebox_override("normal", stile(C_ORO, C_VIOLA, 3, 5, 6))
 	if s.att.tipo == "azione" and o.a == "fine":
 		b.add_theme_stylebox_override("normal", stile(C_CARTA2, C_VIOLA, 3, 5))
 	if s.att.tipo == "evento" and o.ev > 0:
@@ -971,6 +992,8 @@ func scegli(i: int) -> void:
 	_applica(i)
 
 func _applica(i: int) -> void:
+	if guidata and tocca_a_me():
+		guida_azzera = true
 	var prima: Dictionary = s.band.duplicate()
 	var confl_prima: Dictionary = s.confl.duplicate()
 	if popup_tipo in ["carte", "tessere", "mano"]:
@@ -982,7 +1005,7 @@ func _applica(i: int) -> void:
 			plancia.lampeggi[id] = 2.2
 	if s.att != null and s.att.tipo == "tessera":
 		salva()
-	attesa_ia = 0.12 if veloce else 0.7
+	attesa_ia = 0.12 if veloce else (1.3 if guidata else 0.7)
 	aggiorna()
 
 func _process(dt: float) -> void:
@@ -1002,6 +1025,13 @@ func _process(dt: float) -> void:
 		if attesa_ia <= 0.0:
 			occupato = true
 			var i := ia.decidi(s)
+			if guidata:
+				var com := guida.commenta(s, i)
+				if com != "":
+					if guida_azzera:
+						guida_commenti = []
+						guida_azzera = false
+					guida_commenti.append(com)
 			var racconto := ia.racconta(s, i)
 			if racconto != "":
 				mo.nota(s, "Dispaccio: la %s %s." % [Dati.NOMI[s.att.chi], racconto])
@@ -1108,6 +1138,8 @@ func mostra_scelta_carte() -> void:
 	var a: Dictionary = s.att
 	var v := VBoxContainer.new()
 	v.add_child(etichetta("%s: %s" % [Dati.NOMI[a.chi], a.tit], 28, F_TITOLO, C_VIOLA))
+	if guidata:
+		v.add_child(_box_consiglio(min(dim_schermo().x - 140.0, 1500.0)))
 	var griglia := HFlowContainer.new()
 	griglia.add_theme_constant_override("h_separation", 12)
 	griglia.add_theme_constant_override("v_separation", 12)
@@ -1135,9 +1167,12 @@ func mostra_scelta_carte() -> void:
 				if e.cond != "":
 					col.add_child(etichetta("Bonus: " + ("sì, la condizione è soddisfatta" if si else "no, la condizione non è soddisfatta"), 18, F_GRASSO, Color(0.15, 0.45, 0.15) if si else C_BR, 380))
 		var b := bottone(testo_b, func(): scegli(i), 390)
+		if guidata and guida_nd == s.nd and guida_cons.get("i", -1) == i:
+			b.text = "Consigliato: " + testo_b.to_lower()
+			b.add_theme_stylebox_override("normal", stile(C_ORO, C_VIOLA, 3, 6, 6))
 		col.add_child(b)
 		griglia.add_child(col)
-	v.add_child(_scorri(griglia, larg_tot, 800))
+	v.add_child(_scorri(griglia, larg_tot, min(800.0, dim_schermo().y - (360.0 if guidata else 220.0))))
 	apri_popup(v, "carte", true)
 
 ## La plancia originale del giocatore con sopra tessere, Squadre e Ministeri.
@@ -1395,8 +1430,176 @@ Per togliere una bandiera nemica e mettere la tua devi pagare due volte. L'Azion
 
 [b]Ministeri e Vantaggi.[/b] A ogni era scegli due Ministeri: restano coperti finché non li usi. I Vantaggi si ottengono controllando gli spazi collegati e si usano una volta per turno."""
 
+## ------------------------------------------------------------ partita guidata
+func _crea_guida() -> void:
+	guida = Guida.new(mo, ia)
+	guida_pan = PanelContainer.new()
+	guida_pan.add_theme_stylebox_override("panel", stile(Color(1.0, 0.98, 0.92, 0.97), C_VIOLA, 3, 8, 10))
+	radice.add_child(guida_pan)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	guida_pan.add_child(v)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 6)
+	v.add_child(h)
+	var tit := etichetta("La guida", 24, F_TITOLO, C_VIOLA)
+	tit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(tit)
+	guida_bt_segui = _bott_stretto("Segui il consiglio", _segui_consiglio, 16)
+	h.add_child(guida_bt_segui)
+	h.add_child(_bott_stretto("Nel tutorial", _guida_tutorial, 16))
+	guida_bt_rid = _bott_stretto("Riduci", func(): guida_ridotta = not guida_ridotta; _disponi_guida(), 16)
+	h.add_child(guida_bt_rid)
+	guida_corpo = ScrollContainer.new()
+	guida_corpo.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	guida_corpo.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(guida_corpo)
+	guida_txt = RichTextLabel.new()
+	guida_txt.bbcode_enabled = true
+	guida_txt.fit_content = true
+	guida_txt.scroll_active = false
+	guida_txt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	guida_txt.add_theme_font_size_override("normal_font_size", 18)
+	guida_txt.add_theme_font_size_override("bold_font_size", 18)
+	guida_txt.add_theme_color_override("default_color", C_INCH)
+	guida_corpo.add_child(guida_txt)
+
+func _disponi_guida() -> void:
+	if guida_pan == null or not is_instance_valid(guida_pan):
+		return
+	var ar := plancia.area
+	var w: float = min(620.0, ar.size.x - 24.0)
+	var h: float = 52.0 if guida_ridotta else min(ar.size.y * 0.58, 560.0)
+	guida_pan.position = Vector2(ar.position.x + 12.0, ar.end.y - h - 12.0)
+	guida_pan.size = Vector2(w, h)
+	guida_pan.custom_minimum_size = Vector2(w, h)
+	guida_corpo.visible = not guida_ridotta
+	guida_txt.custom_minimum_size.x = w - 40.0
+	guida_bt_rid.text = "Apri" if guida_ridotta else "Riduci"
+
+func _agg_guida() -> void:
+	if not guidata or guida_pan == null or not is_instance_valid(guida_pan):
+		return
+	plancia.consigliato = ""
+	guida_bt_segui.visible = false
+	if s.fine != null:
+		guida_txt.text = "[b]Partita finita[/b]: vince la %s. %s\n\nPuoi rivedere il diario della partita o ricominciare dal menu." % [Dati.NOMI[s.fine.vince], s.fine.get("motivo", "")]
+		return
+	if s.att == null:
+		return
+	if not tocca_a_me():
+		var t := "[b]Tocca alla %s.[/b] La guida ti racconta che cosa fa e che cosa cambia.\n\n" % Dati.NOMI[s.att.chi]
+		t += "\n".join(guida_commenti.slice(max(0, guida_commenti.size() - 8)))
+		guida_txt.text = t
+		guida_corpo.scroll_vertical = max(0, int(guida_txt.size.y))
+		return
+	if guida_nd != s.nd:
+		guida_txt.text = "[i]La guida sta valutando le mosse...[/i]"
+		_calcola_guida.call_deferred(s.nd)
+		return
+	_scrivi_guida()
+
+func _calcola_guida(nd: int) -> void:
+	await get_tree().process_frame
+	if not guidata or s.att == null or s.nd != nd or not tocca_a_me():
+		return
+	guida_cons = guida.consiglio(s)
+	guida_nd = nd
+	_scrivi_guida()
+	_agg_decisione()
+	if popup != null and popup_tipo == "tessere":
+		mostra_tessere()
+	elif popup != null and popup_tipo == "carte":
+		mostra_scelta_carte()
+
+func _scrivi_guida() -> void:
+	var io: String = s.att.chi
+	var t := guida.lezione(s) + "\n\n"
+	t += _testo_consiglio()
+	if not guida_commenti.is_empty():
+		t += "\n\n[b]Che cosa ha appena fatto l'avversario:[/b]\n" + "\n".join(guida_commenti.slice(max(0, guida_commenti.size() - 6)))
+	t += "\n\n" + guida.piano_turno(s, io)
+	guida_txt.text = t
+	guida_corpo.scroll_vertical = 0
+	guida_bt_segui.visible = true
+	var o: Dictionary = s.att.opz[guida_cons.i]
+	if o.has("sp") and S.has(str(o.sp)):
+		plancia.consigliato = str(o.sp)
+
+func _testo_consiglio() -> String:
+	if guida_nd != s.nd:
+		return "[i]La guida sta valutando le mosse...[/i]"
+	var t := "[b]Consiglio: %s[/b]" % guida_cons.et
+	if guida_cons.perche != "":
+		t += "\n" + guida_cons.perche
+	if not guida_cons.piano.is_empty():
+		t += "\n[b]Poi, nello stesso Round:[/b]\n- " + "\n- ".join(guida_cons.piano)
+	if guida_cons.eff.is_empty():
+		t += "\n[b]Che cosa cambia:[/b] nessun effetto immediato sui punti; è un investimento per i Round e i turni che seguono."
+	else:
+		t += "\n[b]Che cosa cambia:[/b]\n- " + "\n- ".join(guida_cons.eff)
+	return t
+
+## Il consiglio in poche righe, per le finestre di tessere e carte.
+func _testo_breve() -> String:
+	var t := "[b]%s[/b]" % guida_cons.et
+	if str(guida_cons.perche).begins_with("[b]" + str(guida_cons.et)):
+		t = guida_cons.perche
+	elif guida_cons.perche != "":
+		t += ". " + guida_cons.perche
+	var eff: Array = guida_cons.eff
+	if not eff.is_empty():
+		t += "\n[b]Che cosa cambia:[/b] " + "; ".join(eff.slice(0, 3))
+		if eff.size() > 3:
+			t += "; e altro ancora (vedi il riquadro della Guida)."
+	return t
+
+func _box_consiglio(largh: float) -> PanelContainer:
+	var pc := PanelContainer.new()
+	pc.add_theme_stylebox_override("panel", stile(Color(1.0, 0.95, 0.78), C_ORO.darkened(0.2), 2, 6, 10))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 12)
+	pc.add_child(h)
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.fit_content = true
+	r.scroll_active = false
+	r.custom_minimum_size.x = largh - 260.0
+	r.add_theme_font_size_override("normal_font_size", 18)
+	r.add_theme_font_size_override("bold_font_size", 18)
+	r.add_theme_color_override("default_color", C_INCH)
+	r.text = "[b]La guida:[/b] " + (_testo_breve() if guida_nd == s.nd else "[i]sta valutando le mosse...[/i]")
+	h.add_child(r)
+	if guida_nd == s.nd:
+		var b := bottone("Segui il consiglio", _segui_consiglio, 210, 18)
+		b.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		h.add_child(b)
+	return pc
+
+func _segui_consiglio() -> void:
+	if guida_nd == s.nd and tocca_a_me():
+		scegli(int(guida_cons.i))
+
+func _guida_tutorial() -> void:
+	var dove: Array = Guida.CAP_TUTORIAL.get(s.att.tipo if s.att != null else "", [0, 0])
+	mostra_tutorial(dove[0], dove[1])
+
 ## Il tutorial passo passo: capitoli a sinistra, pagina a destra (illustrazione, regola, perché, Punti Vittoria).
 var tut_cap := 0
+# partita guidata
+var guidata := false
+var guida: Guida
+var guida_pan: PanelContainer
+var guida_txt: RichTextLabel
+var guida_corpo: ScrollContainer
+var guida_bt_segui: Button
+var guida_bt_rid: Button
+var guida_cons := {}
+var guida_nd := -1
+var guida_commenti := []
+var guida_ridotta := false
+var guida_azzera := false
+var guida_turno := 0
 var tut_pag := 0
 
 func mostra_tutorial(cap := -1, pag := -1) -> void:
@@ -1652,6 +1855,38 @@ func _prova_automatica() -> void:
 		return
 	var parti := prova.split(",")
 	await get_tree().create_timer(0.6).timeout
+	if parti[0] == "guida":
+		# partita guidata: segue sempre il consiglio per N decisioni (0 = fino alla fine), poi foto
+		veloce = true
+		nuova_partita("ia", "FR", 1697, true)
+		var quante := int(parti[1]) if parti.size() > 1 else 0
+		var fatte_g := 0
+		var t_max := 0
+		var t_tot := 0
+		while s.fine == null and (quante == 0 or fatte_g < quante) and fatte_g < 2000:
+			await get_tree().process_frame
+			if popup != null and popup_tipo in ["guerra_esito"]:
+				chiudi_popup()
+			if s.att == null:
+				break
+			if tocca_a_me() and guida_nd == s.nd and not occupato:
+				fatte_g += 1
+				_segui_consiglio()
+			elif tocca_a_me() and guida_nd != s.nd:
+				var t0 := Time.get_ticks_msec()
+				guida_cons = guida.consiglio(s)
+				var dt := Time.get_ticks_msec() - t0
+				t_max = max(t_max, dt)
+				t_tot += dt
+				guida_nd = s.nd
+		print("GUIDA: %d decisioni, tempo medio %d ms, massimo %d ms, turno %d, PV %d, fine %s" % [fatte_g, t_tot / max(1, fatte_g), t_max, s.turno, s.pv, str(s.fine)])
+		veloce = false
+		aggiorna()
+		await get_tree().create_timer(2.5).timeout
+		if OS.has_environment("IS_FOTO"):
+			get_viewport().get_texture().get_image().save_png(OS.get_environment("IS_FOTO"))
+		get_tree().quit()
+		return
 	if parti[0] == "caos":
 		# una partita intera passando dall'interfaccia: scelte a caso per l'umano, IA per l'altro lato
 		veloce = true

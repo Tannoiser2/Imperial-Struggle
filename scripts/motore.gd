@@ -1429,7 +1429,7 @@ func opz_azioni(s: Dictionary, p: String) -> Array:
 					out.append({"a": "ugo_gira", "sp": id, "et": "Gira gli Ugonotti di %s: -1 PE al prossimo Mercato in %s" % [S[id].nome, Dati.REGIONI[S[id].reg]]})
 	out.append({"a": "pref", "et": "Paga i supplementi prima con %s" % ("il Debito" if g.pref_trp else "i Punti Trattato")})
 	if not ar.usato:
-		out.append({"a": "passa", "et": "Passa: riduci il Debito fino a 2"})
+		out.append({"a": "passa", "et": "Passa: riduci il Debito di 2"})
 	out.append({"a": "fine", "et": "Fine del Round d'Azione"})
 	return out
 

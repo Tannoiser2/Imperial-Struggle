@@ -22,6 +22,7 @@ var origine := Vector2.ZERO
 var area := Rect2(0, 0, 1920, 1080)
 var evidenziati := {}   # id -> Color
 var lampeggi := {}      # id -> secondi rimasti
+var consigliato := ""   # spazio della mossa consigliata dalla guida
 var tempo := 0.0
 var tocchi := {}
 var trascina := false
@@ -144,7 +145,7 @@ func _process(dt: float) -> void:
 	tempo += dt
 	if not adattata and size.x > 10:
 		adatta()
-	var ridisegna := not evidenziati.is_empty()
+	var ridisegna := not evidenziati.is_empty() or consigliato != ""
 	for id in lampeggi.keys():
 		lampeggi[id] -= dt
 		if lampeggi[id] <= 0.0:
@@ -210,6 +211,12 @@ func _draw() -> void:
 			var sp: float = max(7.0, 3.6 / zoom)
 			draw_arc(c, RAGGIO + 6.0 + sp * 0.5 + 5.0 * onda, 0, TAU, 40, Color(0, 0, 0, 0.55), sp + 4.0, true)
 			draw_arc(c, RAGGIO + 6.0 + sp * 0.5 + 5.0 * onda, 0, TAU, 40, Color(col.r, col.g, col.b, 0.98), sp, true)
+		if id == consigliato:
+			# la mossa consigliata dalla guida: doppio anello bianco e oro che pulsa
+			var rr := RAGGIO + 26.0 + 10.0 * onda
+			draw_arc(c, rr, 0, TAU, 48, Color(0, 0, 0, 0.6), 14.0, true)
+			draw_arc(c, rr, 0, TAU, 48, Color(1, 1, 1, 0.95), 9.0, true)
+			draw_arc(c, rr + 9.0, 0, TAU, 48, Color(1, 0.8, 0.15, 0.95), 5.0, true)
 		if lampeggi.has(id):
 			draw_arc(c, RAGGIO + 20.0, 0, TAU, 40, Color(1, 0.95, 0.4, clampf(lampeggi[id], 0.0, 1.0)), 9.0, true)
 		if id == sopra:
